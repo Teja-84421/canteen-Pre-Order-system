@@ -425,7 +425,11 @@ document.addEventListener('DOMContentLoaded', function () {
                 el.className = 'menu-item';
                 const inCart = cart.find(c => c.id === item.id);
                 el.innerHTML = `
-                    <div class="menu-item-img">${EMOJI[item.category] || '🍽️'}</div>
+                    <div class="menu-item-img">
+    ${item.image_url 
+        ? `<img src="${item.image_url}" alt="${item.name}" style="width:100%;height:100%;object-fit:cover;">` 
+        : EMOJI[item.category] || '🍽️'}
+</div>
                     <div class="menu-item-content">
                         <span class="item-category-tag">${item.category || ''}</span>
                         <h3>${item.name}</h3>

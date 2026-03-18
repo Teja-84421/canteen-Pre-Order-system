@@ -634,6 +634,7 @@ body {
     justify-content: center;
     font-size: 3rem;
     border-bottom: 1px solid var(--border);
+    overflow: hidden;
 }
 
 .menu-item-content { padding: 16px; }
