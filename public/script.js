@@ -649,10 +649,10 @@ document.addEventListener('DOMContentLoaded', function () {
 
         try {
             const authToken = sessionStorage.getItem('token') || token;
-            const res = await fetch(`${API_URL}/menu/${itemId}/toggle`, {
+            const res = await fetch(`${API_URL}/menu/${itemId}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${authToken}` },
-                body: JSON.stringify({ is_available: newStatus })
+                body: JSON.stringify({ toggleOnly: true, is_available: newStatus })
             });
             if (res.ok) {
                 showToast(newStatus ? '✅ Available — students can order' : '🚫 Not Available — hidden from students', newStatus ? 'success' : '');
