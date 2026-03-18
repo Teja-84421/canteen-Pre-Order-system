@@ -1549,8 +1549,13 @@ body {
    (Student menu card)
 ════════════════════════════════════════ */
 .menu-item-unavailable {
-    opacity: 0.75;
-    pointer-events: none; /* disable all clicks */
+    opacity: 0.78;
+}
+
+/* Only disable the add/remove buttons, not the whole card */
+.menu-item-unavailable .quantity-controls {
+    pointer-events: none;
+    opacity: 0.4;
 }
 
 .menu-item-unavailable .menu-item-img {

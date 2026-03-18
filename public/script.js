@@ -506,31 +506,37 @@ document.addEventListener('DOMContentLoaded', function () {
             }
             container.innerHTML = '';
             menuItems.forEach(item => {
-                const el       = document.createElement('div');
-                const avail    = !!item.is_available;
-                el.className   = 'menu-item' + (avail ? '' : ' menu-item-unavailable');
-                const inCart   = cart.find(c => c.id === item.id);
-                const imgSrc   = getFoodImage(item);
+                const el    = document.createElement('div');
+                const avail = !!item.is_available;
+                // unavailable items get the class but stay visible (like Swiggy)
+                el.className = 'menu-item' + (avail ? '' : ' menu-item-unavailable');
+                const inCart = cart.find(c => c.id === item.id);
+                const imgSrc = getFoodImage(item);
                 el.innerHTML = `
                     <div class="menu-item-img">
                         <img src="${imgSrc}" alt="${item.name}" loading="lazy"
                              onerror="this.style.display='none'">
-                        ${!avail ? `<div class="unavail-overlay">
+                        ${!avail ? `
+                        <div class="unavail-overlay">
                             <span class="unavail-label">Not Available</span>
                         </div>` : ''}
                     </div>
                     <div class="menu-item-content">
                         <span class="item-category-tag">${item.category || ''}</span>
-                        <h3>${item.name}</h3>
+                        <h3 style="${!avail ? 'opacity:0.6' : ''}">${item.name}</h3>
                         <p>${item.description || 'Canteen special'}</p>
                         <div class="menu-item-price">
-                            <span class="price" style="${!avail ? 'text-decoration:line-through;opacity:0.5' : ''}">₹${item.price}</span>
-                            ${avail ? `
-                            <div class="quantity-controls">
-                                <button class="quantity-btn" onclick="changeQty(${item.id},-1)">−</button>
-                                <span class="quantity" id="qty-${item.id}">${inCart?.quantity || 0}</span>
-                                <button class="quantity-btn" onclick="changeQty(${item.id},1)">+</button>
-                            </div>` : `<span class="unavail-tag">Currently Unavailable</span>`}
+                            <span class="price" style="${!avail ? 'text-decoration:line-through;opacity:0.4' : ''}">
+                                ₹${item.price}
+                            </span>
+                            ${avail
+                                ? `<div class="quantity-controls">
+                                    <button class="quantity-btn" onclick="changeQty(${item.id},-1)">−</button>
+                                    <span class="quantity" id="qty-${item.id}">${inCart?.quantity || 0}</span>
+                                    <button class="quantity-btn" onclick="changeQty(${item.id},1)">+</button>
+                                   </div>`
+                                : `<span class="unavail-tag">Currently Unavailable</span>`
+                            }
                         </div>
                     </div>`;
                 container.appendChild(el);
@@ -549,7 +555,7 @@ document.addEventListener('DOMContentLoaded', function () {
         if (!container) return;
         container.innerHTML = '<p style="color:var(--text-secondary);padding:20px">Loading menu…</p>';
         try {
-            const res   = await fetch(`${API_URL}/menu?all=1`);
+            const res   = await fetch(`${API_URL}/menu`);
             const items = await res.json();
             if (!items.length) {
                 container.innerHTML = '<p style="color:var(--text-secondary);padding:20px">No menu items yet. Add one above!</p>';
