@@ -510,11 +510,10 @@ document.addEventListener('DOMContentLoaded', function () {
                 el.className = 'menu-item';
                 const inCart = cart.find(c => c.id === item.id);
                 const imgSrc = getFoodImage(item);
-                const emoji  = EMOJI_MAP[item.category] || '🍽️';
                 el.innerHTML = `
                     <div class="menu-item-img">
                         <img src="${imgSrc}" alt="${item.name}" loading="lazy"
-                             onerror="this.parentElement.innerHTML='<span class=\\"img-fallback-emoji\\">${emoji}</span>'">
+                             onerror="this.style.display='none'">
                     </div>
                     <div class="menu-item-content">
                         <span class="item-category-tag">${item.category || ''}</span>
@@ -553,14 +552,13 @@ document.addEventListener('DOMContentLoaded', function () {
             }
             container.innerHTML = items.map(item => {
                 const imgSrc = getFoodImage(item);
-                const emoji  = EMOJI_MAP[item.category] || '🍽️';
                 const added  = item.created_at
                     ? new Date(item.created_at).toLocaleDateString('en-IN') : '—';
                 return `
                 <div class="worker-menu-row" id="wrow-${item.id}">
                     <div class="worker-menu-thumb">
                         <img src="${imgSrc}" alt="${item.name}" loading="lazy"
-                             onerror="this.src='';this.parentElement.textContent='${emoji}'">
+                             onerror="this.style.display='none'">
                     </div>
                     <div class="worker-menu-info">
                         <div class="worker-menu-name">${item.name}</div>
@@ -924,6 +922,9 @@ document.addEventListener('DOMContentLoaded', function () {
                             <span class="order-number">#${o.order_number}</span>
                             <span style="color:var(--text-secondary);font-size:13px;margin-left:10px">
                                 <i class="fas fa-user" style="color:var(--accent);margin-right:4px"></i>${o.full_name || '—'}
+                            </span>
+                            <span style="color:var(--text-muted);font-size:12px;margin-left:8px">
+                                <i class="fas fa-id-card" style="margin-right:3px"></i>${o.admission_number || '—'}
                             </span>
                         </div>
                         <span class="order-status status-${o.status}">${o.status}</span>
