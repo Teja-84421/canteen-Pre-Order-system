@@ -971,8 +971,12 @@ document.addEventListener('DOMContentLoaded', function () {
                 cont.innerHTML = '<p style="color:var(--text-secondary);padding:20px">No orders found.</p>';
                 return;
             }
-            cont.innerHTML = orders.map(o => `
-                <div class="order-card">
+            cont.innerHTML = orders.map(o => {
+                const orderDate = new Date(o.order_date || Date.now());
+                const dateStr   = orderDate.toLocaleDateString('en-IN', { day:'2-digit', month:'short', year:'numeric' });
+                const timeStr   = orderDate.toLocaleTimeString('en-IN', { hour:'2-digit', minute:'2-digit', hour12:true });
+                return `
+                <div class="order-card" id="order-card-${o.id}">
                     <div class="order-header">
                         <div>
                             <span class="order-number">#${o.order_number}</span>
@@ -983,12 +987,23 @@ document.addEventListener('DOMContentLoaded', function () {
                                 <i class="fas fa-id-card" style="margin-right:3px"></i>${o.admission_number || '—'}
                             </span>
                         </div>
-                        <span class="order-status status-${o.status}">${o.status}</span>
+                        <div style="display:flex;align-items:center;gap:8px">
+                            <span class="order-status status-${o.status}">${o.status}</span>
+                            <button onclick="deleteOrder(${o.id})"
+                                style="background:rgba(255,71,87,0.12);border:1.5px solid rgba(255,71,87,0.35);
+                                       color:var(--danger);border-radius:8px;padding:5px 10px;cursor:pointer;
+                                       font-size:12px;font-weight:600;transition:all 0.2s"
+                                onmouseover="this.style.background='rgba(255,71,87,0.25)'"
+                                onmouseout="this.style.background='rgba(255,71,87,0.12)'">
+                                <i class="fas fa-trash"></i> Delete
+                            </button>
+                        </div>
                     </div>
-                    <div style="color:var(--text-secondary);font-size:13px;margin:8px 0">
-                        <i class="fas fa-rupee-sign" style="color:var(--accent)"></i> ₹${o.total_amount}
-                        &nbsp;·&nbsp; ${o.payment_method}
-                        &nbsp;·&nbsp; ${new Date(o.order_date || Date.now()).toLocaleDateString('en-IN')}
+                    <div style="color:var(--text-secondary);font-size:13px;margin:8px 0;display:flex;flex-wrap:wrap;gap:12px;align-items:center">
+                        <span><i class="fas fa-rupee-sign" style="color:var(--accent)"></i> ₹${o.total_amount}</span>
+                        <span><i class="fas fa-wallet" style="color:var(--accent)"></i> ${o.payment_method}</span>
+                        <span><i class="fas fa-calendar" style="color:var(--accent)"></i> ${dateStr}</span>
+                        <span><i class="fas fa-clock" style="color:var(--accent)"></i> ${timeStr}</span>
                     </div>
                     <div style="display:flex;align-items:center;gap:10px;margin-top:10px">
                         <span style="color:var(--text-muted);font-size:13px">Update Status:</span>
@@ -1000,7 +1015,8 @@ document.addEventListener('DOMContentLoaded', function () {
                                 .join('')}
                         </select>
                     </div>
-                </div>`).join('');
+                </div>`;
+            }).join('');
         } catch { cont.innerHTML = '<p style="color:var(--danger)">Failed to load orders.</p>'; }
     }
 
@@ -1054,6 +1070,31 @@ document.addEventListener('DOMContentLoaded', function () {
     };
 
     document.getElementById('orderFilter')?.addEventListener('change', loadWorkerOrders);
+
+    /* Delete order */
+    window.deleteOrder = async function(orderId) {
+        if (!confirm('Delete this order permanently? This cannot be undone.')) return;
+        const authToken = sessionStorage.getItem('token') || token;
+        try {
+            const res = await fetch(`${API_URL}/orders/${orderId}`, {
+                method: 'DELETE',
+                headers: { Authorization: `Bearer ${authToken}` }
+            });
+            if (res.ok) {
+                const card = document.getElementById('order-card-' + orderId);
+                if (card) {
+                    card.style.transition = 'opacity 0.3s, transform 0.3s';
+                    card.style.opacity = '0';
+                    card.style.transform = 'translateX(20px)';
+                    setTimeout(() => card.remove(), 300);
+                }
+                showToast('Order deleted', 'success');
+            } else {
+                const data = await res.json().catch(() => ({}));
+                showToast(data.error || 'Failed to delete order', 'error');
+            }
+        } catch { showToast('Connection error', 'error'); }
+    };
 
     /* ═══════════════════════════════════════════════════
        PROFILE
@@ -1117,12 +1158,20 @@ document.addEventListener('DOMContentLoaded', function () {
     ═══════════════════════════════════════════════════ */
     const menuItemModal = document.getElementById('menuItemModal');
 
-    document.getElementById('addMenuItemBtn')?.addEventListener('click', () => {
+    function openAddItemModal() {
         document.getElementById('modalTitle').innerHTML = '<i class="fas fa-utensils"></i> Add Menu Item';
         document.getElementById('menuItemForm')?.reset();
         document.getElementById('itemId').value = '';
+        // Reset availability label
+        const lbl = document.getElementById('availEditLabel');
+        if (lbl) { lbl.textContent = 'Available — students can order'; lbl.style.color = 'var(--success)'; }
         menuItemModal?.classList.add('active');
-    });
+    }
+
+    // Admin Add Item button
+    document.getElementById('addMenuItemBtn')?.addEventListener('click', openAddItemModal);
+    // Worker Add Item button
+    document.getElementById('workerAddMenuItemBtn')?.addEventListener('click', openAddItemModal);
 
     document.getElementById('menuItemForm')?.addEventListener('submit', async (e) => {
         e.preventDefault();
