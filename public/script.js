@@ -120,7 +120,7 @@ function getFoodImage(item) {
 ═══════════════════════════════════════════════════ */
 document.addEventListener('DOMContentLoaded', function () {
 
-    let token       = localStorage.getItem('token');
+    let token       = sessionStorage.getItem('token');
     let currentUser = null;
     let menuItems   = [];
     let cart        = [];
@@ -145,7 +145,7 @@ document.addEventListener('DOMContentLoaded', function () {
             currentUser = { fullName: payload.name, userType: payload.user_type };
             showApp();
         } catch {
-            localStorage.removeItem('token');
+            sessionStorage.removeItem('token');
             showOnly('login');
         }
     } else {
@@ -196,7 +196,7 @@ document.addEventListener('DOMContentLoaded', function () {
             const data = await res.json();
             if (res.ok) {
                 token = data.token;
-                localStorage.setItem('token', token);
+                sessionStorage.setItem('token', token);
                 const payload = JSON.parse(atob(token.split('.')[1]));
                 currentUser = { fullName: payload.name, userType: payload.user_type };
                 showApp();
@@ -248,8 +248,9 @@ document.addEventListener('DOMContentLoaded', function () {
 
     /* ═══ LOGOUT ═══ */
     document.getElementById('logoutBtn')?.addEventListener('click', () => {
-        localStorage.removeItem('token');
+        sessionStorage.removeItem('token');
         token = null; currentUser = null; cart = [];
+        if (window._menuRefreshTimer) clearInterval(window._menuRefreshTimer);
         showOnly('login');
         showToast('Logged out successfully');
     });
