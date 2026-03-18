@@ -549,7 +549,7 @@ document.addEventListener('DOMContentLoaded', function () {
         if (!container) return;
         container.innerHTML = '<p style="color:var(--text-secondary);padding:20px">Loading menu…</p>';
         try {
-            const res   = await fetch(`${API_URL}/menu/all`, { headers: { Authorization: `Bearer ${token}` } });
+            const res   = await fetch(`${API_URL}/menu?all=1`);
             const items = await res.json();
             if (!items.length) {
                 container.innerHTML = '<p style="color:var(--text-secondary);padding:20px">No menu items yet. Add one above!</p>';
