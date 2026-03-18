@@ -506,26 +506,31 @@ document.addEventListener('DOMContentLoaded', function () {
             }
             container.innerHTML = '';
             menuItems.forEach(item => {
-                const el = document.createElement('div');
-                el.className = 'menu-item';
-                const inCart = cart.find(c => c.id === item.id);
-                const imgSrc = getFoodImage(item);
+                const el       = document.createElement('div');
+                const avail    = !!item.is_available;
+                el.className   = 'menu-item' + (avail ? '' : ' menu-item-unavailable');
+                const inCart   = cart.find(c => c.id === item.id);
+                const imgSrc   = getFoodImage(item);
                 el.innerHTML = `
                     <div class="menu-item-img">
                         <img src="${imgSrc}" alt="${item.name}" loading="lazy"
                              onerror="this.style.display='none'">
+                        ${!avail ? `<div class="unavail-overlay">
+                            <span class="unavail-label">Not Available</span>
+                        </div>` : ''}
                     </div>
                     <div class="menu-item-content">
                         <span class="item-category-tag">${item.category || ''}</span>
                         <h3>${item.name}</h3>
                         <p>${item.description || 'Canteen special'}</p>
                         <div class="menu-item-price">
-                            <span class="price">₹${item.price}</span>
+                            <span class="price" style="${!avail ? 'text-decoration:line-through;opacity:0.5' : ''}">₹${item.price}</span>
+                            ${avail ? `
                             <div class="quantity-controls">
                                 <button class="quantity-btn" onclick="changeQty(${item.id},-1)">−</button>
                                 <span class="quantity" id="qty-${item.id}">${inCart?.quantity || 0}</span>
                                 <button class="quantity-btn" onclick="changeQty(${item.id},1)">+</button>
-                            </div>
+                            </div>` : `<span class="unavail-tag">Currently Unavailable</span>`}
                         </div>
                     </div>`;
                 container.appendChild(el);
@@ -544,7 +549,7 @@ document.addEventListener('DOMContentLoaded', function () {
         if (!container) return;
         container.innerHTML = '<p style="color:var(--text-secondary);padding:20px">Loading menu…</p>';
         try {
-            const res   = await fetch(`${API_URL}/menu`);
+            const res   = await fetch(`${API_URL}/menu/all`, { headers: { Authorization: `Bearer ${token}` } });
             const items = await res.json();
             if (!items.length) {
                 container.innerHTML = '<p style="color:var(--text-secondary);padding:20px">No menu items yet. Add one above!</p>';
@@ -552,29 +557,36 @@ document.addEventListener('DOMContentLoaded', function () {
             }
             container.innerHTML = items.map(item => {
                 const imgSrc = getFoodImage(item);
+                const avail  = !!item.is_available;
                 const added  = item.created_at
                     ? new Date(item.created_at).toLocaleDateString('en-IN') : '—';
                 return `
-                <div class="worker-menu-row" id="wrow-${item.id}">
+                <div class="worker-menu-row ${avail ? '' : 'worker-row-unavail'}" id="wrow-${item.id}">
                     <div class="worker-menu-thumb">
                         <img src="${imgSrc}" alt="${item.name}" loading="lazy"
                              onerror="this.style.display='none'">
+                        ${!avail ? '<div class="worker-thumb-unavail">Not Available</div>' : ''}
                     </div>
                     <div class="worker-menu-info">
                         <div class="worker-menu-name">${item.name}</div>
                         <div class="worker-menu-desc">${item.description || 'No description'}</div>
                         <div class="worker-menu-meta">
-                            <span class="price" style="font-size:1.1rem">₹${item.price}</span>
-                            <span class="worker-avail-badge ${item.is_available ? 'avail-yes' : 'avail-no'}">
-                                <i class="fas fa-${item.is_available ? 'check-circle' : 'times-circle'}"></i>
-                                ${item.is_available ? 'Available' : 'Unavailable'}
-                            </span>
+                            <span class="price" style="font-size:1.1rem${!avail ? ';opacity:0.45;text-decoration:line-through' : ''}">₹${item.price}</span>
                             <span style="color:var(--text-muted);font-size:12px">
-                                <i class="fas fa-clock"></i> Added: ${added}
+                                <i class="fas fa-clock"></i> ${added}
                             </span>
                         </div>
                     </div>
                     <div class="worker-menu-btns">
+                        <!-- Availability Toggle Switch -->
+                        <label class="avail-switch" title="${avail ? 'Mark as Unavailable' : 'Mark as Available'}">
+                            <input type="checkbox" ${avail ? 'checked' : ''}
+                                   onchange="toggleMenuItem(${item.id}, ${avail ? 1 : 0}, '${containerId}', this)">
+                            <span class="avail-track">
+                                <span class="avail-thumb"></span>
+                            </span>
+                            <span class="avail-switch-label">${avail ? 'Available' : 'Not Available'}</span>
+                        </label>
                         <button class="wbtn wbtn-edit" onclick="editMenuItem(${item.id})">
                             <i class="fas fa-edit"></i> Edit
                         </button>
@@ -608,19 +620,52 @@ document.addEventListener('DOMContentLoaded', function () {
         } catch { showToast('Failed to load item', 'error'); }
     };
 
-    /* Toggle available / unavailable */
-    window.toggleMenuItem = async function (itemId, currentStatus, containerId) {
+    /* Toggle available / unavailable — instant UI, no full reload */
+    window.toggleMenuItem = async function (itemId, currentStatus, containerId, checkbox) {
+        const newStatus = currentStatus ? 0 : 1;
+        const row       = document.getElementById('wrow-' + itemId);
+        const label     = checkbox?.closest('.avail-switch')?.querySelector('.avail-switch-label');
+        const priceEl   = row?.querySelector('.price');
+        const thumbDiv  = row?.querySelector('.worker-menu-thumb');
+
+        // Optimistic UI update instantly
+        if (row) {
+            row.classList.toggle('worker-row-unavail', !newStatus);
+            if (newStatus) {
+                thumbDiv?.querySelector('.worker-thumb-unavail')?.remove();
+                if (priceEl) { priceEl.style.opacity='1'; priceEl.style.textDecoration='none'; }
+                if (label)   label.textContent = 'Available';
+            } else {
+                if (thumbDiv && !thumbDiv.querySelector('.worker-thumb-unavail')) {
+                    const d = document.createElement('div');
+                    d.className = 'worker-thumb-unavail';
+                    d.textContent = 'Not Available';
+                    thumbDiv.appendChild(d);
+                }
+                if (priceEl) { priceEl.style.opacity='0.45'; priceEl.style.textDecoration='line-through'; }
+                if (label)   label.textContent = 'Not Available';
+            }
+        }
+
         try {
             const res = await fetch(`${API_URL}/menu/${itemId}/toggle`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-                body: JSON.stringify({ is_available: currentStatus ? 0 : 1 })
+                body: JSON.stringify({ is_available: newStatus })
             });
             if (res.ok) {
-                showToast(currentStatus ? 'Marked as unavailable' : 'Marked as available', 'success');
+                showToast(newStatus ? '✅ Available — students can order' : '🚫 Not Available — hidden from students', newStatus ? 'success' : '');
+                const studentMenuPage = document.getElementById('studentMenu');
+                if (studentMenuPage && studentMenuPage.classList.contains('active')) loadStudentMenu();
+            } else {
+                if (checkbox) checkbox.checked = !!currentStatus;
+                showToast('Failed to update', 'error');
                 loadWorkerMenu(containerId);
-            } else { showToast('Failed to update', 'error'); }
-        } catch { showToast('Connection error', 'error'); }
+            }
+        } catch {
+            if (checkbox) checkbox.checked = !!currentStatus;
+            showToast('Connection error', 'error');
+        }
     };
 
     /* Delete menu item */
