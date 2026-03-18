@@ -648,9 +648,10 @@ document.addEventListener('DOMContentLoaded', function () {
         }
 
         try {
+            const authToken = sessionStorage.getItem('token') || token;
             const res = await fetch(`${API_URL}/menu/${itemId}/toggle`, {
                 method: 'PUT',
-                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${authToken}` },
                 body: JSON.stringify({ is_available: newStatus })
             });
             if (res.ok) {
@@ -658,8 +659,10 @@ document.addEventListener('DOMContentLoaded', function () {
                 const studentMenuPage = document.getElementById('studentMenu');
                 if (studentMenuPage && studentMenuPage.classList.contains('active')) loadStudentMenu();
             } else {
+                const errData = await res.json().catch(() => ({}));
+                console.error('Toggle failed:', res.status, errData);
                 if (checkbox) checkbox.checked = !!currentStatus;
-                showToast('Failed to update', 'error');
+                showToast(errData.error || `Failed to update (${res.status})`, 'error');
                 loadWorkerMenu(containerId);
             }
         } catch {
@@ -672,9 +675,10 @@ document.addEventListener('DOMContentLoaded', function () {
     window.deleteMenuItem = async function (itemId, containerId) {
         if (!confirm('Delete this menu item? This cannot be undone.')) return;
         try {
+            const authToken = sessionStorage.getItem('token') || token;
             const res = await fetch(`${API_URL}/menu/${itemId}`, {
                 method: 'DELETE',
-                headers: { Authorization: `Bearer ${token}` }
+                headers: { Authorization: `Bearer ${authToken}` }
             });
             if (res.ok) {
                 showToast('Item deleted. Student menu updated.', 'success');
