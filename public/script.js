@@ -678,17 +678,23 @@ document.addEventListener('DOMContentLoaded', function () {
 
     /* ═══════════════════════════════════════════════════
        CHECKOUT
-       — Cash: show note, confirm immediately
-       — Online: show QR, confirm only after user taps
-         "I've Paid" button (student confirms payment done)
+       FLOW:
+       Cash   → Confirm → place order immediately
+       Online → place order (pending) → open UPI app
+              → when user returns to tab → mark paid → show success
     ═══════════════════════════════════════════════════ */
-    const UPI_ID   = '9618919586-2@axl';  // ← your PhonePe UPI ID
+    const UPI_ID   = 'sodemunithanmayteja-1@oksbi'; // ← your PhonePe UPI ID
     const UPI_NAME = 'Sode Muni Thanmay Te';
 
     const checkoutModal   = document.getElementById('checkoutModal');
     const confirmOrderBtn = document.getElementById('confirmOrderBtn');
 
-    /* Open checkout modal */
+    // Tracks pending online order waiting for UPI return
+    let pendingOnlineOrderId     = null;
+    let pendingOnlineOrderNumber = null;
+    let upiReturnHandler         = null;
+
+    /* ── Open checkout modal ── */
     document.getElementById('checkoutBtn')?.addEventListener('click', () => {
         if (!cart.length) { showToast('Add items to your cart first', 'error'); return; }
         checkoutModal?.classList.add('active');
@@ -698,39 +704,37 @@ document.addEventListener('DOMContentLoaded', function () {
             return `<div class="cart-item"><span>${item.name} × ${item.quantity}</span><span>₹${sub}</span></div>`;
         }).join('');
         document.getElementById('checkoutTotal').textContent = total;
-
-        // Reset to cash on every open
+        // Always reset to cash when opening
         document.getElementById('payCash').checked   = true;
         document.getElementById('payOnline').checked = false;
         showPaymentUI('cash', total);
     });
 
-    /* Show/hide QR or cash note based on payment selection */
+    /* ── Show QR or cash note depending on selection ── */
     function showPaymentUI(method, amount) {
         const qrSection  = document.getElementById('qrSection');
         const cashNote   = document.getElementById('cashNote');
-        const confirmBtn = document.getElementById('confirmBtnText');
+        const btnText    = document.getElementById('confirmBtnText');
         const qrImg      = document.getElementById('qrImage');
         const qrAmt      = document.getElementById('qrAmountDisplay');
 
         if (method === 'online') {
-            // Build UPI URL and generate QR
             const upiURL = `upi://pay?pa=${UPI_ID}&pn=${encodeURIComponent(UPI_NAME)}&am=${amount}&cu=INR&tn=CanteenOrder`;
             const qrSrc  = `https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=${encodeURIComponent(upiURL)}&bgcolor=ffffff&color=000000&margin=10`;
-            qrImg.src    = qrSrc;
+            qrImg.src         = qrSrc;
             qrAmt.textContent = amount;
             qrSection.style.display = 'block';
             cashNote.style.display  = 'none';
-            confirmBtn.textContent  = "I've Paid — Confirm Order";
+            btnText.textContent     = 'Pay & Confirm Order';
         } else {
             qrSection.style.display = 'none';
             cashNote.style.display  = 'flex';
-            confirmBtn.textContent  = 'Confirm Order';
+            btnText.textContent     = 'Confirm Order';
             qrImg.src = '';
         }
     }
 
-    /* Listen for payment method toggle */
+    /* ── Payment method toggle ── */
     document.querySelectorAll('input[name="paymentMethod"]').forEach(radio => {
         radio.addEventListener('change', () => {
             const total = cart.reduce((s, i) => s + i.price * i.quantity, 0);
@@ -738,42 +742,131 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     });
 
-    /* Confirm order */
+    /* ── Place order helper ── */
+    async function placeOrder(items, totalAmount, method, paymentStatus) {
+        const res = await fetch(`${API_URL}/orders`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+            body: JSON.stringify({ items, total_amount: totalAmount, payment_method: method, payment_status: paymentStatus })
+        });
+        return res;
+    }
+
+    /* ── Confirm button ── */
     confirmOrderBtn?.addEventListener('click', async () => {
         const method      = document.querySelector('input[name="paymentMethod"]:checked')?.value || 'cash';
         const totalAmount = cart.reduce((s, i) => s + i.price * i.quantity, 0);
+        const btn         = confirmOrderBtn;
 
-        // For online: double-check the user intends to confirm after paying
-        if (method === 'online') {
-            const confirmed = confirm('Please confirm you have completed the UPI payment of ₹' + totalAmount + ' before proceeding.');
-            if (!confirmed) return;
+        /* ════ CASH FLOW ════ */
+        if (method === 'cash') {
+            btn.disabled = true;
+            document.getElementById('confirmBtnText').textContent = 'Placing order…';
+            try {
+                const res  = await placeOrder(cart, totalAmount, 'cash', 'pending');
+                const data = await res.json();
+                if (res.ok) {
+                    onOrderSuccess(data.order_number);
+                } else { showToast(data.error || 'Order failed', 'error'); }
+            } catch { showToast('Connection error', 'error'); }
+            finally {
+                btn.disabled = false;
+                document.getElementById('confirmBtnText').textContent = 'Confirm Order';
+            }
+            return;
         }
 
-        const btn = confirmOrderBtn;
+        /* ════ ONLINE UPI FLOW ════
+           Step 1: Save order as pending in DB
+           Step 2: Open UPI app (upi:// deep link)
+           Step 3: When user returns to this tab (visibilitychange),
+                   mark order as paid and show success — just like
+                   Swiggy / IRCTC / BookMyShow do it
+        ════════════════════════════════════════ */
         btn.disabled = true;
-        btn.querySelector('span').textContent = 'Placing order…';
+        document.getElementById('confirmBtnText').textContent = 'Saving order…';
 
         try {
-            const res = await fetch(`${API_URL}/orders`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-                body: JSON.stringify({ items: cart, total_amount: totalAmount, payment_method: method })
-            });
+            // Step 1 — create order with payment_status = pending
+            const res  = await placeOrder(cart, totalAmount, 'online', 'pending');
             const data = await res.json();
-            if (res.ok) {
-                showToast('Order placed! 🎉 #' + data.order_number, 'success');
-                cart = [];
-                updateCartUI();
-                document.querySelectorAll('.quantity').forEach(el => el.textContent = '0');
-                checkoutModal?.classList.remove('active');
-            } else { showToast(data.error || 'Order failed', 'error'); }
-        } catch { showToast('Connection error', 'error'); }
-        finally {
-            btn.disabled = false;
-            const method2 = document.querySelector('input[name="paymentMethod"]:checked')?.value || 'cash';
-            btn.querySelector('span').textContent = method2 === 'online' ? "I've Paid — Confirm Order" : 'Confirm Order';
-        }
+            if (!res.ok) { showToast(data.error || 'Order failed', 'error'); btn.disabled = false; document.getElementById('confirmBtnText').textContent = 'Pay & Confirm Order'; return; }
+
+            pendingOnlineOrderId     = data.order_id;
+            pendingOnlineOrderNumber = data.order_number;
+
+            // Step 2 — show "Opening PhonePe…" state
+            document.getElementById('confirmBtnText').textContent = 'Opening PhonePe…';
+            showWaitingState(totalAmount);
+
+            // Step 3 — open UPI deep link (opens PhonePe / GPay / any UPI app)
+            const upiURL = `upi://pay?pa=${UPI_ID}&pn=${encodeURIComponent(UPI_NAME)}&am=${totalAmount}&cu=INR&tn=${pendingOnlineOrderNumber}`;
+            window.location.href = upiURL;
+
+            // Step 4 — when user comes BACK to this tab after paying,
+            //           visibilitychange fires → auto-confirm the order
+            if (upiReturnHandler) document.removeEventListener('visibilitychange', upiReturnHandler);
+            upiReturnHandler = async function () {
+                if (document.visibilityState === 'visible' && pendingOnlineOrderId) {
+                    document.removeEventListener('visibilitychange', upiReturnHandler);
+                    upiReturnHandler = null;
+
+                    // Small delay so UPI app fully closes first
+                    await new Promise(r => setTimeout(r, 800));
+
+                    // Mark the order as paid
+                    await fetch(`${API_URL}/orders/${pendingOnlineOrderId}/payment`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                        body: JSON.stringify({ payment_status: 'paid' })
+                    });
+
+                    onOrderSuccess(pendingOnlineOrderNumber);
+                    pendingOnlineOrderId     = null;
+                    pendingOnlineOrderNumber = null;
+                }
+            };
+            document.addEventListener('visibilitychange', upiReturnHandler);
+
+        } catch { showToast('Connection error', 'error'); btn.disabled = false; document.getElementById('confirmBtnText').textContent = 'Pay & Confirm Order'; }
     });
+
+    /* ── Show waiting state inside QR card after UPI opens ── */
+    function showWaitingState(amount) {
+        const qrSection = document.getElementById('qrSection');
+        qrSection.innerHTML = `
+            <div class="qr-card">
+                <div class="qr-waiting-icon"><i class="fas fa-spinner fa-spin"></i></div>
+                <p class="qr-waiting-title">Waiting for Payment…</p>
+                <p class="qr-waiting-sub">Complete ₹${amount} payment in your UPI app.<br>
+                This page will update <strong>automatically</strong> once done.</p>
+                <div class="qr-amount-pill" style="margin-top:16px">₹${amount}</div>
+            </div>`;
+    }
+
+    /* ── Called after any successful order ── */
+    function onOrderSuccess(orderNumber) {
+        showToast('Order confirmed! 🎉 #' + orderNumber, 'success');
+        cart = [];
+        updateCartUI();
+        document.querySelectorAll('.quantity').forEach(el => el.textContent = '0');
+        checkoutModal?.classList.remove('active');
+        // Restore QR section for next time
+        document.getElementById('qrSection').innerHTML = `
+            <div class="qr-card">
+                <div class="qr-header">
+                    <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/5/5e/PhonePe_Logo.png/120px-PhonePe_Logo.png" alt="PhonePe" style="height:28px;object-fit:contain">
+                    <span class="qr-accepted">ACCEPTED HERE</span>
+                </div>
+                <p class="qr-scan-text">Scan &amp; Pay Using PhonePe / Any UPI App</p>
+                <div class="qr-img-wrap"><img id="qrImage" src="" alt="QR Code"/></div>
+                <div class="qr-amount-pill">Pay ₹<span id="qrAmountDisplay">0</span></div>
+                <p class="qr-name">SODE MUNI THANMAY TE</p>
+                <p class="qr-instruction">Tap <strong>"Pay & Confirm Order"</strong> — your UPI app will open automatically.</p>
+            </div>`;
+        confirmOrderBtn.disabled = false;
+        document.getElementById('confirmBtnText').textContent = 'Pay & Confirm Order';
+    }
 
     /* ═══════════════════════════════════════════════════
        STUDENT ORDERS
