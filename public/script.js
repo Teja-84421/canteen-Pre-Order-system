@@ -408,6 +408,93 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
+    /* ═══ FOOD IMAGE LOOKUP ═══
+       Priority: 1) item.image_url from DB
+                 2) name keyword match
+                 3) category fallback
+       Uses Unsplash Source (free, no API key)
+    ════════════════════════════════════════ */
+    const FOOD_IMAGES = {
+        // ── by item name keywords (lowercase) ──
+        'idli':          'https://images.unsplash.com/photo-1630383249896-424e482df921?w=400&h=280&fit=crop',
+        'dosa':          'https://images.unsplash.com/photo-1589301760014-d929f3979dbc?w=400&h=280&fit=crop',
+        'samosa':        'https://images.unsplash.com/photo-1601050690597-df0568f70950?w=400&h=280&fit=crop',
+        'biryani':       'https://images.unsplash.com/photo-1563379091339-03b21ab4a4f8?w=400&h=280&fit=crop',
+        'chicken':       'https://images.unsplash.com/photo-1598515214211-89d3c73ae83b?w=400&h=280&fit=crop',
+        'paneer':        'https://images.unsplash.com/photo-1631452180519-c014fe946bc7?w=400&h=280&fit=crop',
+        'dal':           'https://images.unsplash.com/photo-1546833999-b9f581a1996d?w=400&h=280&fit=crop',
+        'rice':          'https://images.unsplash.com/photo-1516684732162-798a0062be99?w=400&h=280&fit=crop',
+        'roti':          'https://images.unsplash.com/photo-1565557623262-b51c2513a641?w=400&h=280&fit=crop',
+        'chapati':       'https://images.unsplash.com/photo-1565557623262-b51c2513a641?w=400&h=280&fit=crop',
+        'noodles':       'https://images.unsplash.com/photo-1569718212165-3a8278d5f624?w=400&h=280&fit=crop',
+        'fried rice':    'https://images.unsplash.com/photo-1603133872878-684f208fb84b?w=400&h=280&fit=crop',
+        'burger':        'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=400&h=280&fit=crop',
+        'sandwich':      'https://images.unsplash.com/photo-1528735602780-2552fd46c7af?w=400&h=280&fit=crop',
+        'pizza':         'https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=400&h=280&fit=crop',
+        'pasta':         'https://images.unsplash.com/photo-1621996346565-e3dbc646d9a9?w=400&h=280&fit=crop',
+        'vada':          'https://images.unsplash.com/photo-1606491956689-2ea866880c84?w=400&h=280&fit=crop',
+        'pav':           'https://images.unsplash.com/photo-1606491956689-2ea866880c84?w=400&h=280&fit=crop',
+        'poha':          'https://images.unsplash.com/photo-1630383249896-424e482df921?w=400&h=280&fit=crop',
+        'upma':          'https://images.unsplash.com/photo-1630383249896-424e482df921?w=400&h=280&fit=crop',
+        'paratha':       'https://images.unsplash.com/photo-1565557623262-b51c2513a641?w=400&h=280&fit=crop',
+        'puri':          'https://images.unsplash.com/photo-1589301760014-d929f3979dbc?w=400&h=280&fit=crop',
+        'curry':         'https://images.unsplash.com/photo-1565557623262-b51c2513a641?w=400&h=280&fit=crop&sat=-20',
+        'soup':          'https://images.unsplash.com/photo-1547592166-23ac45744acd?w=400&h=280&fit=crop',
+        'salad':         'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=400&h=280&fit=crop',
+        'coffee':        'https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?w=400&h=280&fit=crop',
+        'tea':           'https://images.unsplash.com/photo-1564890369478-c89ca6d9cde9?w=400&h=280&fit=crop',
+        'juice':         'https://images.unsplash.com/photo-1600271886742-f049cd451bba?w=400&h=280&fit=crop',
+        'lassi':         'https://images.unsplash.com/photo-1553361371-9b22f78e8b1d?w=400&h=280&fit=crop',
+        'lime':          'https://images.unsplash.com/photo-1556679343-c7306c1976bc?w=400&h=280&fit=crop',
+        'milk':          'https://images.unsplash.com/photo-1563636619-e9143da7973b?w=400&h=280&fit=crop',
+        'shake':         'https://images.unsplash.com/photo-1572490122747-3968b75cc699?w=400&h=280&fit=crop',
+        'egg':           'https://images.unsplash.com/photo-1525351484163-7529414344d8?w=400&h=280&fit=crop',
+        'omelette':      'https://images.unsplash.com/photo-1510693206972-df098062cb71?w=400&h=280&fit=crop',
+        'bread':         'https://images.unsplash.com/photo-1549931319-a545dcf3bc7c?w=400&h=280&fit=crop',
+        'cake':          'https://images.unsplash.com/photo-1578985545062-69928b1d9587?w=400&h=280&fit=crop',
+        'sweet':         'https://images.unsplash.com/photo-1558642891-54be180ea339?w=400&h=280&fit=crop',
+        'halwa':         'https://images.unsplash.com/photo-1558642891-54be180ea339?w=400&h=280&fit=crop',
+        'khichdi':       'https://images.unsplash.com/photo-1516684732162-798a0062be99?w=400&h=280&fit=crop',
+        'rajma':         'https://images.unsplash.com/photo-1546833999-b9f581a1996d?w=400&h=280&fit=crop',
+        'chole':         'https://images.unsplash.com/photo-1546833999-b9f581a1996d?w=400&h=280&fit=crop',
+        'tikka':         'https://images.unsplash.com/photo-1567188040759-fb8a883dc6d8?w=400&h=280&fit=crop',
+        'kebab':         'https://images.unsplash.com/photo-1603360946369-dc9bb6258143?w=400&h=280&fit=crop',
+        'roll':          'https://images.unsplash.com/photo-1599487488170-d11ec9c172f0?w=400&h=280&fit=crop',
+        'wrap':          'https://images.unsplash.com/photo-1599487488170-d11ec9c172f0?w=400&h=280&fit=crop',
+        'thali':         'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=400&h=280&fit=crop',
+        'fish':          'https://images.unsplash.com/photo-1519708227418-c8fd9a32b7a2?w=400&h=280&fit=crop',
+        'mutton':        'https://images.unsplash.com/photo-1604908176997-125f25cc6f3d?w=400&h=280&fit=crop',
+        'prawn':         'https://images.unsplash.com/photo-1565680018434-b513d5e5fd47?w=400&h=280&fit=crop',
+        'masala':        'https://images.unsplash.com/photo-1613292443284-8d10ef9383fe?w=400&h=280&fit=crop',
+        'bhaji':         'https://images.unsplash.com/photo-1606491956689-2ea866880c84?w=400&h=280&fit=crop',
+        'pakoda':        'https://images.unsplash.com/photo-1601050690597-df0568f70950?w=400&h=280&fit=crop',
+        'chips':         'https://images.unsplash.com/photo-1566478989037-eec170784d0b?w=400&h=280&fit=crop',
+        'fries':         'https://images.unsplash.com/photo-1576107232684-1279f390859f?w=400&h=280&fit=crop',
+    };
+
+    /* Category fallback images */
+    const CATEGORY_IMAGES = {
+        'Main Course': 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=400&h=280&fit=crop',
+        'Starter':     'https://images.unsplash.com/photo-1541014741259-de529411b96a?w=400&h=280&fit=crop',
+        'Breakfast':   'https://images.unsplash.com/photo-1533089860892-a7c6f0a88666?w=400&h=280&fit=crop',
+        'Beverage':    'https://images.unsplash.com/photo-1544145945-f90425340c7e?w=400&h=280&fit=crop',
+        'Snack':       'https://images.unsplash.com/photo-1601050690597-df0568f70950?w=400&h=280&fit=crop',
+        'Fast Food':   'https://images.unsplash.com/photo-1561758033-d89a9ad46330?w=400&h=280&fit=crop',
+        'default':     'https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=400&h=280&fit=crop',
+    };
+
+    function getFoodImage(item) {
+        // 1. Use image_url from DB if set
+        if (item.image_url && item.image_url.startsWith('http')) return item.image_url;
+        // 2. Match item name keywords
+        const nameLower = (item.name || '').toLowerCase();
+        for (const [keyword, url] of Object.entries(FOOD_IMAGES)) {
+            if (nameLower.includes(keyword)) return url;
+        }
+        // 3. Category fallback
+        return CATEGORY_IMAGES[item.category] || CATEGORY_IMAGES['default'];
+    }
+
     /* ═══ LOAD MENU ═══ */
     async function loadMenu() {
         const container = document.getElementById('menuContainer');
@@ -418,18 +505,20 @@ document.addEventListener('DOMContentLoaded', function () {
             menuItems  = await res.json();
             if (!menuItems.length) { container.innerHTML = '<p style="color:var(--text-secondary);padding:20px">No menu items available.</p>'; return; }
 
-            const EMOJI = { 'Main Course':'🍛','Starter':'🥗','Breakfast':'🍳','Beverage':'☕','Snack':'🍿','Fast Food':'🍔' };
             container.innerHTML = '';
             menuItems.forEach(item => {
                 const el = document.createElement('div');
                 el.className = 'menu-item';
-                const inCart = cart.find(c => c.id === item.id);
+                const inCart   = cart.find(c => c.id === item.id);
+                const imgSrc   = getFoodImage(item);
                 el.innerHTML = `
                     <div class="menu-item-img">
-    ${item.image_url 
-        ? `<img src="${item.image_url}" alt="${item.name}" style="width:100%;height:100%;object-fit:cover;">` 
-        : EMOJI[item.category] || '🍽️'}
-</div>
+                        <img src="${imgSrc}" alt="${item.name}" loading="lazy"
+                             onerror="this.parentElement.innerHTML='<span class=\\'img-fallback-emoji\\'>${{
+                                'Main Course':'🍛','Starter':'🥗','Breakfast':'🍳',
+                                'Beverage':'☕','Snack':'🍿','Fast Food':'🍔'
+                             }[item.category]||'🍽️'}</span>'">
+                    </div>
                     <div class="menu-item-content">
                         <span class="item-category-tag">${item.category || ''}</span>
                         <h3>${item.name}</h3>
