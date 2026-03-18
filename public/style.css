@@ -1266,3 +1266,155 @@ body {
 
 .avail-yes { background: rgba(34,212,160,0.15); color: var(--success); border: 1px solid rgba(34,212,160,0.3); }
 .avail-no  { background: rgba(255,71,87,0.15);  color: var(--danger);  border: 1px solid rgba(255,71,87,0.3); }
+
+/* ════════════════════════════════════════
+   WORKER MENU — List Row Layout
+════════════════════════════════════════ */
+.worker-menu-row {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 16px 20px;
+    margin-bottom: 12px;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.worker-menu-row:hover {
+    border-color: rgba(255,107,43,0.35);
+    box-shadow: 0 2px 16px rgba(0,0,0,0.25);
+}
+
+/* Small thumbnail — 80x80 */
+.worker-menu-thumb {
+    width: 80px;
+    height: 80px;
+    border-radius: 10px;
+    overflow: hidden;
+    flex-shrink: 0;
+    background: var(--bg-surface);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.8rem;
+    border: 1px solid var(--border);
+}
+
+.worker-menu-thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    filter: brightness(0.9) saturate(1.1);
+}
+
+/* Info section */
+.worker-menu-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.worker-menu-name {
+    font-family: 'Syne', sans-serif;
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 4px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.worker-menu-desc {
+    font-size: 13px;
+    color: var(--text-secondary);
+    margin-bottom: 10px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.worker-menu-meta {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    flex-wrap: wrap;
+}
+
+/* Available / Unavailable badge */
+.worker-avail-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 12px;
+    font-weight: 600;
+    padding: 3px 10px;
+    border-radius: 50px;
+}
+
+.worker-avail-badge.avail-yes {
+    background: rgba(34,212,160,0.12);
+    color: var(--success);
+    border: 1px solid rgba(34,212,160,0.3);
+}
+
+.worker-avail-badge.avail-no {
+    background: rgba(255,71,87,0.12);
+    color: var(--danger);
+    border: 1px solid rgba(255,71,87,0.3);
+}
+
+/* Buttons section */
+.worker-menu-btns {
+    display: flex;
+    gap: 10px;
+    flex-shrink: 0;
+}
+
+.wbtn {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 8px 18px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    font-family: 'DM Sans', sans-serif;
+    cursor: pointer;
+    border: 1.5px solid transparent;
+    transition: all 0.2s;
+    white-space: nowrap;
+}
+
+.wbtn-edit {
+    background: rgba(91,140,255,0.12);
+    color: #5b8cff;
+    border-color: rgba(91,140,255,0.35);
+}
+
+.wbtn-edit:hover {
+    background: rgba(91,140,255,0.22);
+    border-color: #5b8cff;
+    transform: translateY(-1px);
+}
+
+.wbtn-delete {
+    background: rgba(255,71,87,0.12);
+    color: var(--danger);
+    border-color: rgba(255,71,87,0.35);
+}
+
+.wbtn-delete:hover {
+    background: rgba(255,71,87,0.22);
+    border-color: var(--danger);
+    transform: translateY(-1px);
+}
+
+/* Responsive — stack on small screens */
+@media (max-width: 600px) {
+    .worker-menu-row { flex-wrap: wrap; }
+    .worker-menu-btns { width: 100%; justify-content: flex-end; }
+    .worker-menu-thumb { width: 64px; height: 64px; }
+}

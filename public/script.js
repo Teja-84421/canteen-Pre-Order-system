@@ -457,6 +457,15 @@ document.addEventListener('DOMContentLoaded', function () {
             if (pageId === 'studentProfile') loadProfile();
         });
         document.querySelector('#studentDashboard .nav-link')?.click();
+
+        // Auto-refresh student menu every 30 seconds so changes by worker appear instantly
+        if (window._menuRefreshTimer) clearInterval(window._menuRefreshTimer);
+        window._menuRefreshTimer = setInterval(() => {
+            const menuPage = document.getElementById('studentMenu');
+            if (menuPage && menuPage.classList.contains('active')) {
+                loadStudentMenu();
+            }
+        }, 30000);
     }
 
     /* ─── Worker ─── */
@@ -527,7 +536,7 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     /* ═══════════════════════════════════════════════════
-       WORKER / ADMIN MENU — with Edit & Delete buttons
+       WORKER / ADMIN MENU — clean list layout
        containerId: 'workerMenuContainer' or 'adminMenuContainer'
     ═══════════════════════════════════════════════════ */
     async function loadWorkerMenu(containerId = 'workerMenuContainer') {
@@ -538,44 +547,44 @@ document.addEventListener('DOMContentLoaded', function () {
             const res   = await fetch(`${API_URL}/menu`);
             const items = await res.json();
             if (!items.length) {
-                container.innerHTML = '<p style="color:var(--text-secondary);padding:20px">No menu items yet. Add one!</p>';
+                container.innerHTML = '<p style="color:var(--text-secondary);padding:20px">No menu items yet. Add one above!</p>';
                 return;
             }
-            container.innerHTML = '';
-            items.forEach(item => {
-                const el     = document.createElement('div');
-                el.className = 'menu-item';
+            container.innerHTML = items.map(item => {
                 const imgSrc = getFoodImage(item);
                 const emoji  = EMOJI_MAP[item.category] || '🍽️';
-                el.innerHTML = `
-                    <div class="menu-item-img">
+                const added  = item.created_at
+                    ? new Date(item.created_at).toLocaleDateString('en-IN') : '—';
+                return `
+                <div class="worker-menu-row" id="wrow-${item.id}">
+                    <div class="worker-menu-thumb">
                         <img src="${imgSrc}" alt="${item.name}" loading="lazy"
-                             onerror="this.parentElement.innerHTML='<span class=\\"img-fallback-emoji\\">${emoji}</span>'">
-                        <div class="item-availability ${item.is_available ? 'avail-yes' : 'avail-no'}">
-                            ${item.is_available ? '● Available' : '● Unavailable'}
+                             onerror="this.src='';this.parentElement.textContent='${emoji}'">
+                    </div>
+                    <div class="worker-menu-info">
+                        <div class="worker-menu-name">${item.name}</div>
+                        <div class="worker-menu-desc">${item.description || 'No description'}</div>
+                        <div class="worker-menu-meta">
+                            <span class="price" style="font-size:1.1rem">₹${item.price}</span>
+                            <span class="worker-avail-badge ${item.is_available ? 'avail-yes' : 'avail-no'}">
+                                <i class="fas fa-${item.is_available ? 'check-circle' : 'times-circle'}"></i>
+                                ${item.is_available ? 'Available' : 'Unavailable'}
+                            </span>
+                            <span style="color:var(--text-muted);font-size:12px">
+                                <i class="fas fa-clock"></i> Added: ${added}
+                            </span>
                         </div>
                     </div>
-                    <div class="menu-item-content">
-                        <span class="item-category-tag">${item.category || ''}</span>
-                        <h3>${item.name}</h3>
-                        <p>${item.description || 'Canteen special'}</p>
-                        <div class="menu-item-price">
-                            <span class="price">₹${item.price}</span>
-                            <div class="worker-item-actions">
-                                <button class="btn-icon btn-edit" onclick="editMenuItem(${item.id})" title="Edit">
-                                    <i class="fas fa-pencil-alt"></i>
-                                </button>
-                                <button class="btn-icon btn-toggle" onclick="toggleMenuItem(${item.id}, ${item.is_available}, '${containerId}')" title="${item.is_available ? 'Mark Unavailable' : 'Mark Available'}">
-                                    <i class="fas fa-${item.is_available ? 'eye-slash' : 'eye'}"></i>
-                                </button>
-                                <button class="btn-icon btn-delete" onclick="deleteMenuItem(${item.id}, '${containerId}')" title="Delete">
-                                    <i class="fas fa-trash"></i>
-                                </button>
-                            </div>
-                        </div>
-                    </div>`;
-                container.appendChild(el);
-            });
+                    <div class="worker-menu-btns">
+                        <button class="wbtn wbtn-edit" onclick="editMenuItem(${item.id})">
+                            <i class="fas fa-edit"></i> Edit
+                        </button>
+                        <button class="wbtn wbtn-delete" onclick="deleteMenuItem(${item.id}, '${containerId}')">
+                            <i class="fas fa-trash"></i> Delete
+                        </button>
+                    </div>
+                </div>`;
+            }).join('');
         } catch {
             container.innerHTML = '<p style="color:var(--danger);padding:20px">Failed to load menu.</p>';
         }
@@ -624,8 +633,11 @@ document.addEventListener('DOMContentLoaded', function () {
                 headers: { Authorization: `Bearer ${token}` }
             });
             if (res.ok) {
-                showToast('Item deleted', 'success');
+                showToast('Item deleted. Student menu updated.', 'success');
                 loadWorkerMenu(containerId);
+                // Also refresh student menu if open
+                const studentMenuPage = document.getElementById('studentMenu');
+                if (studentMenuPage && studentMenuPage.classList.contains('active')) loadStudentMenu();
             } else { showToast('Failed to delete', 'error'); }
         } catch { showToast('Connection error', 'error'); }
     };
@@ -934,13 +946,16 @@ document.addEventListener('DOMContentLoaded', function () {
                 body: JSON.stringify(payload)
             });
             if (res.ok) {
-                showToast(itemId ? 'Item updated!' : 'Item added!', 'success');
+                showToast(itemId ? 'Item updated! Students will see changes shortly.' : 'Item added!', 'success');
                 menuItemModal?.classList.remove('active');
-                // Reload whichever menu container is visible
+                // Reload worker/admin menu container
                 const workerCont = document.getElementById('workerMenuContainer');
                 const adminCont  = document.getElementById('adminMenuContainer');
                 if (workerCont && workerCont.closest('.page-content.active')) loadWorkerMenu('workerMenuContainer');
                 if (adminCont  && adminCont.closest('.page-content.active'))  loadWorkerMenu('adminMenuContainer');
+                // Also reload student menu silently so students see changes
+                const studentMenuPage = document.getElementById('studentMenu');
+                if (studentMenuPage && studentMenuPage.classList.contains('active')) loadStudentMenu();
             } else { showToast('Failed to save item', 'error'); }
         } catch { showToast('Connection error', 'error'); }
     });
