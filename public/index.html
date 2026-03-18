@@ -317,16 +317,46 @@
                 <h4 class="payment-label">Payment Method</h4>
                 <div class="payment-options">
                     <label class="payment-opt">
-                        <input type="radio" name="paymentMethod" value="cash" checked>
+                        <input type="radio" name="paymentMethod" value="cash" checked id="payCash">
                         <div class="payment-opt-inner"><i class="fas fa-money-bill-wave"></i><span>Cash on Pickup</span></div>
                     </label>
                     <label class="payment-opt">
-                        <input type="radio" name="paymentMethod" value="online">
+                        <input type="radio" name="paymentMethod" value="online" id="payOnline">
                         <div class="payment-opt-inner"><i class="fas fa-qrcode"></i><span>Online Payment</span></div>
                     </label>
                 </div>
-                <div id="qrCodeContainer" style="display:none; justify-content:center; margin:20px 0;"></div>
-                <button id="confirmOrderBtn" class="submit-btn" style="margin-top:20px"><span>Confirm Order</span><i class="fas fa-check"></i></button>
+
+                <!-- QR section — shown only when online is selected -->
+                <div id="qrSection" style="display:none">
+                    <div class="qr-card">
+                        <div class="qr-header">
+                            <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/5/5e/PhonePe_Logo.png/120px-PhonePe_Logo.png"
+                                 alt="PhonePe" style="height:28px;object-fit:contain">
+                            <span class="qr-accepted">ACCEPTED HERE</span>
+                        </div>
+                        <p class="qr-scan-text">Scan &amp; Pay Using PhonePe / Any UPI App</p>
+                        <div class="qr-img-wrap">
+                            <img id="qrImage" src="" alt="QR Code" />
+                        </div>
+                        <div class="qr-amount-pill">Pay ₹<span id="qrAmountDisplay">0</span></div>
+                        <p class="qr-name">SODE MUNI THANMAY TE</p>
+                        <p class="qr-instruction">
+                            After scanning and completing payment,<br>
+                            click <strong>"I've Paid — Confirm Order"</strong> below.
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Cash note — shown only when cash is selected -->
+                <div id="cashNote" class="cash-note">
+                    <i class="fas fa-info-circle"></i>
+                    Pay at the counter when you pick up your order.
+                </div>
+
+                <button id="confirmOrderBtn" class="submit-btn" style="margin-top:20px">
+                    <span id="confirmBtnText">Confirm Order</span>
+                    <i class="fas fa-check"></i>
+                </button>
             </div>
         </div>
     </div>

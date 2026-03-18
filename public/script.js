@@ -678,10 +678,17 @@ document.addEventListener('DOMContentLoaded', function () {
 
     /* ═══════════════════════════════════════════════════
        CHECKOUT
+       — Cash: show note, confirm immediately
+       — Online: show QR, confirm only after user taps
+         "I've Paid" button (student confirms payment done)
     ═══════════════════════════════════════════════════ */
+    const UPI_ID   = 'sodemunithanmayteja-1@oksbi';  // ← your PhonePe UPI ID
+    const UPI_NAME = 'Sode Muni Thanmay Te';
+
     const checkoutModal   = document.getElementById('checkoutModal');
     const confirmOrderBtn = document.getElementById('confirmOrderBtn');
 
+    /* Open checkout modal */
     document.getElementById('checkoutBtn')?.addEventListener('click', () => {
         if (!cart.length) { showToast('Add items to your cart first', 'error'); return; }
         checkoutModal?.classList.add('active');
@@ -691,25 +698,61 @@ document.addEventListener('DOMContentLoaded', function () {
             return `<div class="cart-item"><span>${item.name} × ${item.quantity}</span><span>₹${sub}</span></div>`;
         }).join('');
         document.getElementById('checkoutTotal').textContent = total;
+
+        // Reset to cash on every open
+        document.getElementById('payCash').checked   = true;
+        document.getElementById('payOnline').checked = false;
+        showPaymentUI('cash', total);
     });
 
+    /* Show/hide QR or cash note based on payment selection */
+    function showPaymentUI(method, amount) {
+        const qrSection  = document.getElementById('qrSection');
+        const cashNote   = document.getElementById('cashNote');
+        const confirmBtn = document.getElementById('confirmBtnText');
+        const qrImg      = document.getElementById('qrImage');
+        const qrAmt      = document.getElementById('qrAmountDisplay');
+
+        if (method === 'online') {
+            // Build UPI URL and generate QR
+            const upiURL = `upi://pay?pa=${UPI_ID}&pn=${encodeURIComponent(UPI_NAME)}&am=${amount}&cu=INR&tn=CanteenOrder`;
+            const qrSrc  = `https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=${encodeURIComponent(upiURL)}&bgcolor=ffffff&color=000000&margin=10`;
+            qrImg.src    = qrSrc;
+            qrAmt.textContent = amount;
+            qrSection.style.display = 'block';
+            cashNote.style.display  = 'none';
+            confirmBtn.textContent  = "I've Paid — Confirm Order";
+        } else {
+            qrSection.style.display = 'none';
+            cashNote.style.display  = 'flex';
+            confirmBtn.textContent  = 'Confirm Order';
+            qrImg.src = '';
+        }
+    }
+
+    /* Listen for payment method toggle */
+    document.querySelectorAll('input[name="paymentMethod"]').forEach(radio => {
+        radio.addEventListener('change', () => {
+            const total = cart.reduce((s, i) => s + i.price * i.quantity, 0);
+            showPaymentUI(radio.value, total);
+        });
+    });
+
+    /* Confirm order */
     confirmOrderBtn?.addEventListener('click', async () => {
         const method      = document.querySelector('input[name="paymentMethod"]:checked')?.value || 'cash';
         const totalAmount = cart.reduce((s, i) => s + i.price * i.quantity, 0);
 
+        // For online: double-check the user intends to confirm after paying
         if (method === 'online') {
-            const upiID  = 'yourupi@upi';
-            const upiURL = `upi://pay?pa=${upiID}&pn=Canteen&am=${totalAmount}&cu=INR`;
-            const qr     = `https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(upiURL)}`;
-            const cont   = document.getElementById('qrCodeContainer');
-            cont.style.display = 'flex';
-            cont.innerHTML = `<div style="text-align:center"><p style="color:var(--text-secondary);margin-bottom:12px">Scan to Pay ₹${totalAmount}</p><img src="${qr}" style="border-radius:12px;border:2px solid var(--border)"/></div>`;
-            window.location.href = upiURL;
-            return;
+            const confirmed = confirm('Please confirm you have completed the UPI payment of ₹' + totalAmount + ' before proceeding.');
+            if (!confirmed) return;
         }
 
         const btn = confirmOrderBtn;
         btn.disabled = true;
+        btn.querySelector('span').textContent = 'Placing order…';
+
         try {
             const res = await fetch(`${API_URL}/orders`, {
                 method: 'POST',
@@ -725,7 +768,11 @@ document.addEventListener('DOMContentLoaded', function () {
                 checkoutModal?.classList.remove('active');
             } else { showToast(data.error || 'Order failed', 'error'); }
         } catch { showToast('Connection error', 'error'); }
-        finally { btn.disabled = false; }
+        finally {
+            btn.disabled = false;
+            const method2 = document.querySelector('input[name="paymentMethod"]:checked')?.value || 'cash';
+            btn.querySelector('span').textContent = method2 === 'online' ? "I've Paid — Confirm Order" : 'Confirm Order';
+        }
     });
 
     /* ═══════════════════════════════════════════════════
