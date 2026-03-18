@@ -682,7 +682,7 @@ document.addEventListener('DOMContentLoaded', function () {
        — Online: show QR, confirm only after user taps
          "I've Paid" button (student confirms payment done)
     ═══════════════════════════════════════════════════ */
-    const UPI_ID   = 'sodemunithanmayteja-1@oksbi';  // ← your PhonePe UPI ID
+    const UPI_ID   = '9618919586-2@axl';  // ← your PhonePe UPI ID
     const UPI_NAME = 'Sode Muni Thanmay Te';
 
     const checkoutModal   = document.getElementById('checkoutModal');
