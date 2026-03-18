@@ -1225,3 +1225,44 @@ body {
     padding: 2px 8px;
     margin-bottom: 6px;
 }
+
+/* ─── Worker Menu Item Action Buttons ─── */
+.worker-item-actions {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.btn-icon {
+    width: 34px;
+    height: 34px;
+    border-radius: 8px;
+    border: 1.5px solid var(--border);
+    background: var(--bg-surface);
+    color: var(--text-secondary);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    transition: all 0.2s;
+}
+
+.btn-edit:hover   { border-color: var(--info);    color: var(--info);    background: rgba(91,140,255,0.1); }
+.btn-toggle:hover { border-color: var(--warning);  color: var(--warning); background: rgba(240,192,64,0.1); }
+.btn-delete:hover { border-color: var(--danger);   color: var(--danger);  background: rgba(255,71,87,0.1); }
+
+/* ─── Availability Badge on image ─── */
+.item-availability {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 3px 10px;
+    border-radius: 50px;
+    letter-spacing: 0.3px;
+}
+
+.avail-yes { background: rgba(34,212,160,0.15); color: var(--success); border: 1px solid rgba(34,212,160,0.3); }
+.avail-no  { background: rgba(255,71,87,0.15);  color: var(--danger);  border: 1px solid rgba(255,71,87,0.3); }
