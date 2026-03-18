@@ -572,21 +572,16 @@ document.addEventListener('DOMContentLoaded', function () {
                         <div class="worker-menu-desc">${item.description || 'No description'}</div>
                         <div class="worker-menu-meta">
                             <span class="price" style="font-size:1.1rem${!avail ? ';opacity:0.45;text-decoration:line-through' : ''}">₹${item.price}</span>
+                            <span class="worker-avail-badge ${avail ? 'avail-yes' : 'avail-no'}">
+                                <i class="fas fa-${avail ? 'check-circle' : 'times-circle'}"></i>
+                                ${avail ? 'Available' : 'Not Available'}
+                            </span>
                             <span style="color:var(--text-muted);font-size:12px">
                                 <i class="fas fa-clock"></i> ${added}
                             </span>
                         </div>
                     </div>
                     <div class="worker-menu-btns">
-                        <!-- Availability Toggle Switch -->
-                        <label class="avail-switch" title="${avail ? 'Mark as Unavailable' : 'Mark as Available'}">
-                            <input type="checkbox" ${avail ? 'checked' : ''}
-                                   onchange="toggleMenuItem(${item.id}, ${avail ? 1 : 0}, '${containerId}', this)">
-                            <span class="avail-track">
-                                <span class="avail-thumb"></span>
-                            </span>
-                            <span class="avail-switch-label">${avail ? 'Available' : 'Not Available'}</span>
-                        </label>
                         <button class="wbtn wbtn-edit" onclick="editMenuItem(${item.id})">
                             <i class="fas fa-edit"></i> Edit
                         </button>
@@ -615,7 +610,13 @@ document.addEventListener('DOMContentLoaded', function () {
             document.getElementById('itemPrice').value       = item.price;
             document.getElementById('itemCategory').value    = item.category;
             document.getElementById('itemImage').value       = item.image_url || '';
-            document.getElementById('itemAvailable').checked = !!item.is_available;
+            const avail = !!item.is_available;
+            document.getElementById('itemAvailable').checked = avail;
+            const lbl = document.getElementById('availEditLabel');
+            if (lbl) {
+                lbl.textContent = avail ? 'Available — students can order' : 'Not Available — hidden from students';
+                lbl.style.color = avail ? 'var(--success)' : 'var(--danger)';
+            }
             document.getElementById('menuItemModal')?.classList.add('active');
         } catch { showToast('Failed to load item', 'error'); }
     };
@@ -1119,36 +1120,47 @@ document.addEventListener('DOMContentLoaded', function () {
 
     document.getElementById('menuItemForm')?.addEventListener('submit', async (e) => {
         e.preventDefault();
-        const itemId  = document.getElementById('itemId').value;
-        const payload = {
-            name:         document.getElementById('itemName').value,
-            description:  document.getElementById('itemDescription').value,
+        const itemId   = document.getElementById('itemId').value;
+        const authToken = sessionStorage.getItem('token') || token;
+        const isAvail  = document.getElementById('itemAvailable').checked ? 1 : 0;
+        const payload  = {
+            name:         document.getElementById('itemName').value.trim(),
+            description:  document.getElementById('itemDescription').value.trim() || null,
             price:        parseFloat(document.getElementById('itemPrice').value),
             category:     document.getElementById('itemCategory').value,
-            image_url:    document.getElementById('itemImage').value || null,
-            is_available: document.getElementById('itemAvailable').checked ? 1 : 0
+            image_url:    document.getElementById('itemImage').value.trim() || null,
+            is_available: isAvail
         };
         const url    = itemId ? `${API_URL}/menu/${itemId}` : `${API_URL}/menu`;
         const method = itemId ? 'PUT' : 'POST';
+        const btn    = e.target.querySelector('.submit-btn') || e.target.querySelector('button[type="submit"]');
+        if (btn) { btn.disabled = true; }
         try {
-            const res = await fetch(url, {
+            const res  = await fetch(url, {
                 method,
-                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${authToken}` },
                 body: JSON.stringify(payload)
             });
+            const data = await res.json().catch(() => ({}));
             if (res.ok) {
-                showToast(itemId ? 'Item updated! Students will see changes shortly.' : 'Item added!', 'success');
+                const action = itemId
+                    ? (isAvail ? '✅ Item updated & marked Available' : '🚫 Item updated & marked Not Available')
+                    : '✅ Item added!';
+                showToast(action, 'success');
                 menuItemModal?.classList.remove('active');
-                // Reload worker/admin menu container
-                const workerCont = document.getElementById('workerMenuContainer');
-                const adminCont  = document.getElementById('adminMenuContainer');
-                if (workerCont && workerCont.closest('.page-content.active')) loadWorkerMenu('workerMenuContainer');
-                if (adminCont  && adminCont.closest('.page-content.active'))  loadWorkerMenu('adminMenuContainer');
-                // Also reload student menu silently so students see changes
-                const studentMenuPage = document.getElementById('studentMenu');
-                if (studentMenuPage && studentMenuPage.classList.contains('active')) loadStudentMenu();
-            } else { showToast('Failed to save item', 'error'); }
-        } catch { showToast('Connection error', 'error'); }
+                // Always reload worker menu
+                loadWorkerMenu('workerMenuContainer');
+                loadWorkerMenu('adminMenuContainer');
+                // Also reload student menu silently
+                loadStudentMenu();
+            } else {
+                showToast(data.error || 'Failed to save item', 'error');
+            }
+        } catch (err) {
+            showToast('Connection error', 'error');
+        } finally {
+            if (btn) btn.disabled = false;
+        }
     });
 
     /* ─── Modal close ─── */

@@ -387,11 +387,15 @@
                         </div>
                     </div>
                     <div class="input-group"><i class="fas fa-image input-icon"></i><input type="text" id="itemImage" placeholder="Image URL (Optional)"></div>
-                    <label class="toggle-label">
-                        <input type="checkbox" id="itemAvailable" checked>
-                        <span class="toggle-slider"></span>
-                        <span style="color:var(--text-secondary);font-size:14px">Available</span>
-                    </label>
+                    <div class="avail-edit-row">
+                        <label class="toggle-label" style="margin:0">
+                            <input type="checkbox" id="itemAvailable" checked
+                                   onchange="document.getElementById('availEditLabel').textContent=this.checked?'Available — students can order':'Not Available — hidden from students';
+                                             document.getElementById('availEditLabel').style.color=this.checked?'var(--success)':'var(--danger)'">
+                            <span class="toggle-slider"></span>
+                        </label>
+                        <span id="availEditLabel" style="font-size:14px;font-weight:600;color:var(--success)">Available — students can order</span>
+                    </div>
                     <input type="hidden" id="itemId">
                     <button type="submit" class="submit-btn" style="margin-top:16px"><span>Save Item</span><i class="fas fa-save"></i></button>
                 </form>

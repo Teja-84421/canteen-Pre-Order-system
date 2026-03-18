@@ -1688,3 +1688,15 @@ body {
 .avail-switch input:checked ~ .avail-switch-label {
     color: var(--success);
 }
+
+/* ── Availability row in Edit modal ── */
+.avail-edit-row {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    background: var(--bg-surface);
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 12px 16px;
+    margin: 8px 0 16px;
+}
