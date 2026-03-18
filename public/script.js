@@ -1,0 +1,695 @@
+/* ═══════════════════════════════════════════════════
+   CANTEEN PRE-ORDER SYSTEM — Frontend Script
+   Works with: Node/Express backend (Vercel + TiDB)
+═══════════════════════════════════════════════════ */
+
+/* ─── API URL: auto-detects local vs deployed ─── */
+const API_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+    ? 'http://localhost:5002/api'
+    : '/api';   // On Vercel, same origin
+
+/* ─── Global helpers ─── */
+function togglePw(id, btn) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const isText = el.type === 'text';
+    el.type = isText ? 'password' : 'text';
+    const icon = btn.querySelector('i');
+    if (icon) icon.className = isText ? 'fas fa-eye' : 'fas fa-eye-slash';
+}
+
+function selectRole(role) {
+    document.getElementById('loginRole').value = role;
+    document.getElementById('roleStudent').classList.toggle('active', role === 'student');
+    document.getElementById('roleWorker').classList.toggle('active',  role === 'worker');
+}
+
+let toastTimeout;
+function showToast(msg, type = '') {
+    const t = document.getElementById('toast');
+    if (!t) return;
+    clearTimeout(toastTimeout);
+    t.textContent = msg;
+    t.className   = 'toast ' + type + ' show';
+    toastTimeout  = setTimeout(() => { t.className = 'toast ' + type; }, 3500);
+}
+
+/* ═══════════════════════════════════════════════════
+   MAIN APP
+═══════════════════════════════════════════════════ */
+document.addEventListener('DOMContentLoaded', function () {
+
+    let token       = localStorage.getItem('token');
+    let currentUser = null;
+    let menuItems   = [];
+    let cart        = [];
+
+    /* ── Page refs ── */
+    const allPages = {
+        login:    document.getElementById('loginPage'),
+        register: document.getElementById('registerPage'),
+        forgot:   document.getElementById('forgotPasswordPage'),
+        app:      document.getElementById('appContainer')
+    };
+
+    function showOnly(key) {
+        Object.values(allPages).forEach(p => { if (p) p.classList.remove('active'); });
+        if (allPages[key]) allPages[key].classList.add('active');
+    }
+
+    /* ── Restore session ── */
+    if (token) {
+        try {
+            const payload = JSON.parse(atob(token.split('.')[1]));
+            if (payload.exp * 1000 < Date.now()) throw new Error('Expired');
+            currentUser = { fullName: payload.name, userType: payload.user_type };
+            showApp();
+        } catch {
+            localStorage.removeItem('token');
+            showOnly('login');
+        }
+    } else {
+        showOnly('login');
+    }
+
+    /* ── Navigation links ── */
+    document.getElementById('showRegister')?.addEventListener('click', (e) => { e.preventDefault(); showOnly('register'); });
+    document.getElementById('showLogin')?.addEventListener('click',    (e) => { e.preventDefault(); showOnly('login'); });
+    document.getElementById('backToLogin')?.addEventListener('click',  (e) => { e.preventDefault(); showOnly('login'); });
+
+    /* ═══ SHOW APP ═══ */
+    function showApp() {
+        showOnly('app');
+        document.querySelectorAll('.dashboard').forEach(d => d.style.display = 'none');
+
+        if (currentUser.userType === 'worker') {
+            const wd = document.getElementById('workerDashboard');
+            if (wd) { wd.style.display = 'flex'; setupWorkerNavigation(); loadWorkerOrders(); }
+        } else if (currentUser.userType === 'admin') {
+            const ad = document.getElementById('adminDashboard');
+            if (ad) { ad.style.display = 'flex'; setupAdminNavigation(); }
+        } else {
+            const sd = document.getElementById('studentDashboard');
+            if (sd) { sd.style.display = 'flex'; loadStudentDashboard(); }
+        }
+
+        const nameEl   = document.getElementById('userName');
+        const avatarEl = document.getElementById('userAvatar');
+        if (nameEl)   nameEl.textContent   = currentUser.fullName || '';
+        if (avatarEl) avatarEl.textContent  = (currentUser.fullName || '?')[0].toUpperCase();
+    }
+
+    /* ═══ LOGIN ═══ */
+    document.getElementById('loginForm')?.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const btn = e.target.querySelector('.submit-btn');
+        btn.disabled = true;
+        btn.querySelector('span').textContent = 'Signing in…';
+
+        try {
+            const res  = await fetch(`${API_URL}/login`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    admission_number: document.getElementById('loginAdmissionNumber').value.trim(),
+                    password:         document.getElementById('loginPassword').value
+                })
+            });
+            const data = await res.json();
+            if (res.ok) {
+                token = data.token;
+                localStorage.setItem('token', token);
+                const payload = JSON.parse(atob(token.split('.')[1]));
+                currentUser   = { fullName: payload.name, userType: payload.user_type };
+                showApp();
+                showToast('Welcome, ' + currentUser.fullName + '! 👋', 'success');
+            } else {
+                showToast(data.error || 'Login failed', 'error');
+            }
+        } catch {
+            showToast('Cannot connect to server. Check your connection.', 'error');
+        } finally {
+            btn.disabled = false;
+            btn.querySelector('span').textContent = 'Sign In';
+        }
+    });
+
+    /* ═══ REGISTER ═══ */
+    document.getElementById('registerForm')?.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const password = document.getElementById('regPassword').value;
+        const confirm  = document.getElementById('regConfirmPassword').value;
+        if (password !== confirm) { showToast('Passwords do not match', 'error'); return; }
+        if (password.length < 6)  { showToast('Password must be at least 6 characters', 'error'); return; }
+
+        const btn = e.target.querySelector('.submit-btn');
+        btn.disabled = true;
+        try {
+            const res  = await fetch(`${API_URL}/register`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    admission_number: document.getElementById('regAdmissionNumber').value.trim(),
+                    full_name:        document.getElementById('regFullName').value.trim(),
+                    email:            document.getElementById('regEmail').value.trim(),
+                    phone:            document.getElementById('regPhone').value.trim(),
+                    user_type:        document.getElementById('regUserType').value,
+                    password
+                })
+            });
+            const data = await res.json();
+            if (res.ok) {
+                showToast('Account created! Please sign in.', 'success');
+                e.target.reset();
+                showOnly('login');
+            } else {
+                showToast(data.error || 'Registration failed', 'error');
+            }
+        } catch { showToast('Connection error', 'error'); }
+        finally { btn.disabled = false; }
+    });
+
+    /* ═══ LOGOUT ═══ */
+    document.getElementById('logoutBtn')?.addEventListener('click', () => {
+        localStorage.removeItem('token');
+        token = null; currentUser = null; cart = [];
+        showOnly('login');
+        showToast('Logged out successfully');
+    });
+
+    /* ═══ FORGOT PASSWORD ═══ */
+    let fpEmail  = '';
+    let fpOtp    = '';
+    let otpTimer = null;
+
+    document.getElementById('showForgotPassword')?.addEventListener('click', (e) => {
+        e.preventDefault();
+        showOnly('forgot');
+        showFpStep(1);
+    });
+
+    function showFpStep(n) {
+        [1, 2, 3].forEach(i => {
+            const el = document.getElementById('fpStep' + i);
+            if (el) el.style.display = (i === n) ? 'block' : 'none';
+        });
+    }
+
+    /* Step 1 – request OTP */
+    document.getElementById('forgotEmailForm')?.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        fpEmail = document.getElementById('forgotEmail').value.trim();
+        const btn = e.target.querySelector('.submit-btn');
+        btn.disabled = true;
+        btn.querySelector('span').textContent = 'Sending…';
+
+        try {
+            const res  = await fetch(`${API_URL}/forgot-password`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email: fpEmail })
+            });
+            const data = await res.json();
+            if (res.ok) {
+                showToast('OTP sent to ' + fpEmail, 'success');
+                document.getElementById('otpEmailDisplay').textContent = fpEmail;
+                showFpStep(2);
+                startOtpTimer();
+                // Reset OTP boxes
+                document.querySelectorAll('.otp-input').forEach(i => { i.value = ''; i.classList.remove('filled'); });
+                document.querySelector('.otp-input')?.focus();
+            } else {
+                showToast(data.error || 'Email not found', 'error');
+            }
+        } catch { showToast('Connection error', 'error'); }
+        finally { btn.disabled = false; btn.querySelector('span').textContent = 'Send OTP'; }
+    });
+
+    /* OTP timer */
+    function startOtpTimer() {
+        if (otpTimer) clearInterval(otpTimer);
+        let secs = 300;
+        tick();
+        otpTimer = setInterval(() => {
+            secs--;
+            tick();
+            if (secs <= 0) { clearInterval(otpTimer); showToast('OTP expired. Please resend.', 'error'); }
+        }, 1000);
+        function tick() {
+            const el = document.getElementById('otpCountdown');
+            if (el) el.textContent = String(Math.floor(secs/60)).padStart(2,'0') + ':' + String(secs%60).padStart(2,'0');
+        }
+    }
+
+    /* OTP input auto-advance */
+    const otpInputs = document.querySelectorAll('.otp-input');
+    otpInputs.forEach((inp, idx) => {
+        inp.addEventListener('input', () => {
+            inp.value = inp.value.replace(/\D/, '').slice(0,1);
+            inp.classList.toggle('filled', inp.value.length > 0);
+            if (inp.value && idx < otpInputs.length - 1) otpInputs[idx + 1].focus();
+        });
+        inp.addEventListener('keydown', (e) => {
+            if (e.key === 'Backspace' && !inp.value && idx > 0) {
+                otpInputs[idx - 1].focus();
+                otpInputs[idx - 1].value = '';
+                otpInputs[idx - 1].classList.remove('filled');
+            }
+        });
+        inp.addEventListener('paste', (e) => {
+            e.preventDefault();
+            const text = e.clipboardData.getData('text').replace(/\D/g,'');
+            [...text.slice(0,6)].forEach((ch, i) => {
+                if (otpInputs[i]) { otpInputs[i].value = ch; otpInputs[i].classList.add('filled'); }
+            });
+            otpInputs[Math.min(text.length, 5)]?.focus();
+        });
+    });
+
+    /* Step 2 – verify OTP via API */
+    document.getElementById('verifyOtpBtn')?.addEventListener('click', async () => {
+        const enteredOtp = Array.from(otpInputs).map(i => i.value).join('');
+        if (enteredOtp.length < 6) { showToast('Please enter all 6 digits', 'error'); return; }
+
+        const btn = document.getElementById('verifyOtpBtn');
+        btn.disabled = true;
+        btn.querySelector('span').textContent = 'Verifying…';
+
+        try {
+            const res  = await fetch(`${API_URL}/verify-otp`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email: fpEmail, otp: enteredOtp })
+            });
+            const data = await res.json();
+            if (res.ok) {
+                fpOtp = enteredOtp;
+                clearInterval(otpTimer);
+                showToast('OTP verified! ✅', 'success');
+                showFpStep(3);
+            } else {
+                showToast(data.error || 'Invalid OTP', 'error');
+                otpInputs.forEach(i => { i.value = ''; i.classList.remove('filled'); });
+                otpInputs[0]?.focus();
+            }
+        } catch { showToast('Connection error', 'error'); }
+        finally { btn.disabled = false; btn.querySelector('span').textContent = 'Verify OTP'; }
+    });
+
+    /* Resend OTP */
+    document.getElementById('resendOtp')?.addEventListener('click', async (e) => {
+        e.preventDefault();
+        try {
+            const res = await fetch(`${API_URL}/forgot-password`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email: fpEmail })
+            });
+            const data = await res.json();
+            if (res.ok) {
+                otpInputs.forEach(i => { i.value = ''; i.classList.remove('filled'); });
+                showToast('New OTP sent to ' + fpEmail, 'success');
+                startOtpTimer();
+            } else { showToast(data.error || 'Failed to resend', 'error'); }
+        } catch { showToast('Connection error', 'error'); }
+    });
+
+    /* Step 3 – reset password via API */
+    document.getElementById('resetPasswordForm')?.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const newPw  = document.getElementById('newPassword').value;
+        const confPw = document.getElementById('confirmNewPassword').value;
+        if (newPw !== confPw) { showToast('Passwords do not match', 'error'); return; }
+        if (newPw.length < 6) { showToast('Password must be at least 6 characters', 'error'); return; }
+
+        const btn = e.target.querySelector('.submit-btn');
+        btn.disabled = true;
+        try {
+            const res  = await fetch(`${API_URL}/reset-password`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email: fpEmail, otp: fpOtp, newPassword: newPw })
+            });
+            const data = await res.json();
+            if (res.ok) {
+                showToast('Password reset! Please sign in. 🎉', 'success');
+                setTimeout(() => showOnly('login'), 1800);
+            } else { showToast(data.error || 'Reset failed', 'error'); }
+        } catch { showToast('Connection error', 'error'); }
+        finally { btn.disabled = false; }
+    });
+
+    /* Password strength */
+    document.getElementById('newPassword')?.addEventListener('input', function () {
+        const val  = this.value;
+        const fill = document.getElementById('pwStrengthFill');
+        const lbl  = document.getElementById('pwStrengthLabel');
+        if (!fill || !lbl) return;
+        let s = 0;
+        if (val.length >= 8)           s++;
+        if (/[A-Z]/.test(val))         s++;
+        if (/[0-9]/.test(val))         s++;
+        if (/[^A-Za-z0-9]/.test(val))  s++;
+        const levels = [
+            { pct:'0%',   color:'transparent', text:'' },
+            { pct:'25%',  color:'#ff4757',     text:'Weak' },
+            { pct:'50%',  color:'#f0c040',     text:'Fair' },
+            { pct:'75%',  color:'#5b8cff',     text:'Good' },
+            { pct:'100%', color:'#22d4a0',     text:'Strong' }
+        ];
+        const lv = levels[Math.min(s, 4)];
+        fill.style.width      = val ? lv.pct : '0%';
+        fill.style.background = lv.color;
+        lbl.textContent = val ? lv.text : '';
+        lbl.style.color = lv.color;
+    });
+
+    /* ═══ STUDENT DASHBOARD ═══ */
+    function loadStudentDashboard() {
+        setupNavigation('#studentDashboard', (pageId) => {
+            if (pageId === 'studentMenu')    loadMenu();
+            if (pageId === 'studentOrders')  loadStudentOrders();
+            if (pageId === 'studentProfile') loadProfile();
+        });
+        document.querySelector('#studentDashboard .nav-link')?.click();
+    }
+
+    /* ═══ WORKER NAVIGATION ═══ */
+    function setupWorkerNavigation() {
+        setupNavigation('#workerDashboard', (pageId) => {
+            if (pageId === 'workerOrders') loadWorkerOrders();
+            if (pageId === 'workerMenu')   loadMenu();
+        });
+    }
+
+    /* ═══ ADMIN NAVIGATION ═══ */
+    function setupAdminNavigation() {
+        setupNavigation('#adminDashboard', (pageId) => {
+            if (pageId === 'adminStats')  loadAdminStats();
+            if (pageId === 'adminOrders') loadWorkerOrders();
+            if (pageId === 'adminMenu')   loadMenu();
+            if (pageId === 'adminUsers')  loadUsers();
+        });
+        document.querySelector('#adminDashboard .nav-link')?.click();
+    }
+
+    function setupNavigation(dashboardSelector, onSwitch) {
+        const links = document.querySelectorAll(`${dashboardSelector} .nav-link`);
+        links.forEach(link => {
+            link.addEventListener('click', (e) => {
+                e.preventDefault();
+                const pageId = link.getAttribute('data-page');
+                links.forEach(l => l.classList.remove('active'));
+                link.classList.add('active');
+                document.querySelectorAll(`${dashboardSelector} .page-content`).forEach(p => p.classList.remove('active'));
+                document.getElementById(pageId)?.classList.add('active');
+                onSwitch(pageId);
+            });
+        });
+    }
+
+    /* ═══ LOAD MENU ═══ */
+    async function loadMenu() {
+        const container = document.getElementById('menuContainer');
+        if (!container) return;
+        container.innerHTML = '<p style="color:var(--text-secondary);padding:20px">Loading menu…</p>';
+        try {
+            const res  = await fetch(`${API_URL}/menu`);
+            menuItems  = await res.json();
+            if (!menuItems.length) { container.innerHTML = '<p style="color:var(--text-secondary);padding:20px">No menu items available.</p>'; return; }
+
+            const EMOJI = { 'Main Course':'🍛','Starter':'🥗','Breakfast':'🍳','Beverage':'☕','Snack':'🍿','Fast Food':'🍔' };
+            container.innerHTML = '';
+            menuItems.forEach(item => {
+                const el = document.createElement('div');
+                el.className = 'menu-item';
+                const inCart = cart.find(c => c.id === item.id);
+                el.innerHTML = `
+                    <div class="menu-item-img">${EMOJI[item.category] || '🍽️'}</div>
+                    <div class="menu-item-content">
+                        <span class="item-category-tag">${item.category || ''}</span>
+                        <h3>${item.name}</h3>
+                        <p>${item.description || 'Canteen special'}</p>
+                        <div class="menu-item-price">
+                            <span class="price">₹${item.price}</span>
+                            <div class="quantity-controls">
+                                <button class="quantity-btn" onclick="changeQty(${item.id},-1)">−</button>
+                                <span class="quantity" id="qty-${item.id}">${inCart?.quantity || 0}</span>
+                                <button class="quantity-btn" onclick="changeQty(${item.id},1)">+</button>
+                            </div>
+                        </div>
+                    </div>`;
+                container.appendChild(el);
+            });
+        } catch { container.innerHTML = '<p style="color:var(--danger);padding:20px">Failed to load menu.</p>'; }
+    }
+
+    /* ═══ CART ═══ */
+    window.changeQty = function (itemId, delta) {
+        const item = menuItems.find(m => m.id === itemId);
+        if (!item) return;
+        const existing = cart.find(c => c.id === itemId);
+        if (existing) {
+            existing.quantity += delta;
+            if (existing.quantity <= 0) cart = cart.filter(c => c.id !== itemId);
+        } else if (delta > 0) {
+            cart.push({ ...item, quantity: 1 });
+        }
+        const qtyEl = document.getElementById('qty-' + itemId);
+        if (qtyEl) qtyEl.textContent = cart.find(c => c.id === itemId)?.quantity || 0;
+        updateCartUI();
+    };
+
+    function updateCartUI() {
+        const cartItems = document.getElementById('cartItems');
+        const cartTotal = document.getElementById('cartTotal');
+        if (!cartItems || !cartTotal) return;
+        let total = 0;
+        cartItems.innerHTML = cart.length
+            ? cart.map(item => {
+                const sub = item.price * item.quantity;
+                total += sub;
+                return `<div class="cart-item"><span>${item.name} × ${item.quantity}</span><span>₹${sub}</span></div>`;
+              }).join('')
+            : '<p style="color:var(--text-muted);font-size:13px;padding:8px 0">Cart is empty</p>';
+        cartTotal.textContent = total;
+    }
+
+    /* ═══ CHECKOUT ═══ */
+    const checkoutModal   = document.getElementById('checkoutModal');
+    const confirmOrderBtn = document.getElementById('confirmOrderBtn');
+
+    document.getElementById('checkoutBtn')?.addEventListener('click', () => {
+        if (!cart.length) { showToast('Add items to your cart first', 'error'); return; }
+        checkoutModal?.classList.add('active');
+        let total = 0;
+        const itemsHtml = cart.map(item => {
+            const sub = item.price * item.quantity; total += sub;
+            return `<div class="cart-item"><span>${item.name} × ${item.quantity}</span><span>₹${sub}</span></div>`;
+        }).join('');
+        document.getElementById('checkoutItems').innerHTML = itemsHtml;
+        document.getElementById('checkoutTotal').textContent = total;
+    });
+
+    confirmOrderBtn?.addEventListener('click', async () => {
+        const method      = document.querySelector('input[name="paymentMethod"]:checked')?.value || 'cash';
+        const totalAmount = cart.reduce((s, i) => s + i.price * i.quantity, 0);
+
+        if (method === 'online') {
+            const upiID  = 'yourupi@upi';
+            const upiURL = `upi://pay?pa=${upiID}&pn=Canteen&am=${totalAmount}&cu=INR`;
+            const qr     = `https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(upiURL)}`;
+            const cont   = document.getElementById('qrCodeContainer');
+            cont.style.display = 'flex';
+            cont.innerHTML = `<div style="text-align:center"><p style="color:var(--text-secondary);margin-bottom:12px">Scan to Pay ₹${totalAmount}</p><img src="${qr}" style="border-radius:12px;border:2px solid var(--border)"/></div>`;
+            window.location.href = upiURL;
+            return;
+        }
+
+        const btn = confirmOrderBtn;
+        btn.disabled = true;
+        try {
+            const res = await fetch(`${API_URL}/orders`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                body: JSON.stringify({ items: cart, total_amount: totalAmount, payment_method: method })
+            });
+            const data = await res.json();
+            if (res.ok) {
+                showToast('Order placed! 🎉 #' + data.order_number, 'success');
+                cart = [];
+                updateCartUI();
+                document.querySelectorAll('.quantity').forEach(el => el.textContent = '0');
+                checkoutModal?.classList.remove('active');
+            } else { showToast(data.error || 'Order failed', 'error'); }
+        } catch { showToast('Connection error', 'error'); }
+        finally { btn.disabled = false; }
+    });
+
+    /* ═══ STUDENT ORDERS ═══ */
+    async function loadStudentOrders() {
+        const cont = document.getElementById('studentOrdersContainer');
+        if (!cont) return;
+        cont.innerHTML = '<p style="color:var(--text-secondary)">Loading orders…</p>';
+        try {
+            const res    = await fetch(`${API_URL}/orders/my-orders`, { headers: { Authorization: `Bearer ${token}` } });
+            const orders = await res.json();
+            if (!orders.length) { cont.innerHTML = '<p style="color:var(--text-secondary);padding:20px">No orders yet. Go order something! 😋</p>'; return; }
+            cont.innerHTML = orders.map(o => `
+                <div class="order-card">
+                    <div class="order-header">
+                        <span class="order-number">#${o.order_number}</span>
+                        <span class="order-status status-${o.status}">${o.status}</span>
+                    </div>
+                    ${o.items?.length ? `<div class="order-details">${o.items.map(i=>`<div class="order-item"><span>${i.name} × ${i.quantity}</span><span>₹${i.price*i.quantity}</span></div>`).join('')}</div>` : ''}
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px">
+                        <span style="color:var(--text-muted);font-size:12px">${o.payment_method} · ${new Date(o.order_date||Date.now()).toLocaleDateString('en-IN')}</span>
+                        <span class="order-total">₹${o.total_amount}</span>
+                    </div>
+                </div>`).join('');
+        } catch { cont.innerHTML = '<p style="color:var(--danger)">Failed to load orders.</p>'; }
+    }
+
+    /* ═══ WORKER ORDERS ═══ */
+    async function loadWorkerOrders() {
+        const cont = document.getElementById('workerOrdersContainer') || document.getElementById('adminOrdersContainer');
+        if (!cont) return;
+        cont.innerHTML = '<p style="color:var(--text-secondary)">Loading orders…</p>';
+        try {
+            const filter = document.getElementById('orderFilter')?.value || 'all';
+            const url    = filter !== 'all' ? `${API_URL}/orders?status=${filter}` : `${API_URL}/orders`;
+            const res    = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
+            const orders = await res.json();
+            if (!orders.length) { cont.innerHTML = '<p style="color:var(--text-secondary);padding:20px">No orders found.</p>'; return; }
+            cont.innerHTML = orders.map(o => `
+                <div class="order-card">
+                    <div class="order-header">
+                        <div>
+                            <span class="order-number">#${o.order_number}</span>
+                            <span style="color:var(--text-secondary);font-size:13px;margin-left:10px">${o.full_name || ''}</span>
+                        </div>
+                        <span class="order-status status-${o.status}">${o.status}</span>
+                    </div>
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px">
+                        <select onchange="updateOrderStatus(${o.id},this.value)" style="background:var(--input-bg);border:1px solid var(--border);color:var(--text-primary);padding:6px 10px;border-radius:6px;font-size:13px;cursor:pointer">
+                            ${['pending','confirmed','preparing','ready','completed','cancelled'].map(s=>`<option value="${s}" ${o.status===s?'selected':''}>${s}</option>`).join('')}
+                        </select>
+                        <span class="order-total">₹${o.total_amount}</span>
+                    </div>
+                </div>`).join('');
+        } catch { cont.innerHTML = '<p style="color:var(--danger)">Failed to load orders.</p>'; }
+    }
+
+    window.updateOrderStatus = async function(orderId, status) {
+        try {
+            const res = await fetch(`${API_URL}/orders/${orderId}/status`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                body: JSON.stringify({ status })
+            });
+            if (res.ok) showToast('Status updated to: ' + status, 'success');
+            else showToast('Failed to update status', 'error');
+        } catch { showToast('Connection error', 'error'); }
+    };
+
+    /* Order filter */
+    document.getElementById('orderFilter')?.addEventListener('change', loadWorkerOrders);
+
+    /* ═══ PROFILE ═══ */
+    async function loadProfile() {
+        const el = document.getElementById('profileInfo');
+        if (!el) return;
+        el.innerHTML = '<p style="color:var(--text-secondary)">Loading…</p>';
+        try {
+            const res  = await fetch(`${API_URL}/profile`, { headers: { Authorization: `Bearer ${token}` } });
+            const data = await res.json();
+            el.innerHTML = `
+                <div class="profile-field"><label>Full Name</label><span>${data.full_name}</span></div>
+                <div class="profile-field"><label>Admission No.</label><span>${data.admission_number}</span></div>
+                <div class="profile-field"><label>Email</label><span>${data.email || '—'}</span></div>
+                <div class="profile-field"><label>Phone</label><span>${data.phone || '—'}</span></div>
+                <div class="profile-field"><label>Role</label><span style="text-transform:capitalize">${data.user_type}</span></div>`;
+        } catch { el.innerHTML = '<p style="color:var(--danger)">Failed to load profile.</p>'; }
+    }
+
+    /* ═══ ADMIN STATS ═══ */
+    async function loadAdminStats() {
+        const cont = document.getElementById('statsContainer');
+        if (!cont) return;
+        try {
+            const res  = await fetch(`${API_URL}/stats`, { headers: { Authorization: `Bearer ${token}` } });
+            const data = await res.json();
+            cont.innerHTML = `
+                <div class="stat-card"><div class="stat-number">${data.total_orders}</div><div class="stat-label">Total Orders</div></div>
+                <div class="stat-card"><div class="stat-number">${data.pending_orders}</div><div class="stat-label">Pending Orders</div></div>
+                <div class="stat-card"><div class="stat-number">₹${data.total_revenue}</div><div class="stat-label">Total Revenue</div></div>
+                <div class="stat-card"><div class="stat-number">${data.total_users}</div><div class="stat-label">Students</div></div>`;
+        } catch { cont.innerHTML = '<p style="color:var(--danger)">Failed to load stats.</p>'; }
+    }
+
+    /* ═══ ADMIN USERS ═══ */
+    async function loadUsers() {
+        const cont = document.getElementById('usersContainer');
+        if (!cont) return;
+        try {
+            const res   = await fetch(`${API_URL}/users`, { headers: { Authorization: `Bearer ${token}` } });
+            const users = await res.json();
+            cont.innerHTML = users.map(u => `
+                <div class="order-card" style="display:flex;justify-content:space-between;align-items:center">
+                    <div>
+                        <div style="font-weight:600;color:var(--text-primary)">${u.full_name}</div>
+                        <div style="font-size:13px;color:var(--text-secondary)">${u.admission_number} · ${u.email || 'No email'}</div>
+                    </div>
+                    <span class="order-status status-${u.user_type==='student'?'confirmed':'ready'}" style="text-transform:capitalize">${u.user_type}</span>
+                </div>`).join('');
+        } catch { cont.innerHTML = '<p style="color:var(--danger)">Failed to load users.</p>'; }
+    }
+
+    /* ═══ MENU ITEM MODAL (Admin/Worker) ═══ */
+    const menuItemModal = document.getElementById('menuItemModal');
+
+    document.getElementById('addMenuItemBtn')?.addEventListener('click', () => {
+        document.getElementById('modalTitle').innerHTML = '<i class="fas fa-utensils"></i> Add Menu Item';
+        document.getElementById('menuItemForm')?.reset();
+        document.getElementById('itemId').value = '';
+        menuItemModal?.classList.add('active');
+    });
+
+    document.getElementById('menuItemForm')?.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const itemId  = document.getElementById('itemId').value;
+        const payload = {
+            name:         document.getElementById('itemName').value,
+            description:  document.getElementById('itemDescription').value,
+            price:        parseFloat(document.getElementById('itemPrice').value),
+            category:     document.getElementById('itemCategory').value,
+            image_url:    document.getElementById('itemImage').value || null,
+            is_available: document.getElementById('itemAvailable').checked ? 1 : 0
+        };
+        const url    = itemId ? `${API_URL}/menu/${itemId}` : `${API_URL}/menu`;
+        const method = itemId ? 'PUT' : 'POST';
+        try {
+            const res = await fetch(url, {
+                method,
+                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                body: JSON.stringify(payload)
+            });
+            if (res.ok) {
+                showToast(itemId ? 'Item updated!' : 'Item added!', 'success');
+                menuItemModal?.classList.remove('active');
+                loadMenu();
+            } else { showToast('Failed to save item', 'error'); }
+        } catch { showToast('Connection error', 'error'); }
+    });
+
+    /* ═══ MODAL CLOSE EVENTS ═══ */
+    document.querySelectorAll('.close-modal').forEach(btn => {
+        btn.addEventListener('click', () => {
+            btn.closest('.modal')?.classList.remove('active');
+        });
+    });
+    [checkoutModal, menuItemModal].forEach(m => {
+        m?.addEventListener('click', (e) => { if (e.target === m) m.classList.remove('active'); });
+    });
+
+});

@@ -1,0 +1,1031 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Dashboard - Canteen Pre-Order System</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        /* Additional styles for student page */
+        .quantity-controls {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        
+        .quantity-btn {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            border: 2px solid #3498db;
+            background: white;
+            color: #3498db;
+            font-weight: bold;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+        }
+        
+        .quantity-btn:hover {
+            background: #3498db;
+            color: white;
+        }
+        
+        .quantity-display {
+            min-width: 30px;
+            text-align: center;
+            font-weight: 600;
+            font-size: 18px;
+        }
+        
+        .add-to-cart-btn {
+            padding: 8px 16px;
+            background: #27ae60;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            margin-top: 10px;
+        }
+        
+        .add-to-cart-btn:hover {
+            background: #219653;
+        }
+        
+        .cart-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .cart-total {
+            padding: 20px;
+            border-top: 2px solid #eee;
+            text-align: right;
+            font-size: 1.2rem;
+            font-weight: 700;
+        }
+        
+        .cart-badge {
+            background: #e74c3c;
+            color: white;
+            border-radius: 50%;
+            padding: 2px 8px;
+            font-size: 0.8rem;
+            margin-left: 5px;
+        }
+        
+        .menu-card {
+            position: relative;
+            transition: transform 0.3s;
+        }
+        
+        .menu-card:hover {
+            transform: translateY(-5px);
+        }
+        
+        .menu-image {
+            height: 150px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 3rem;
+            border-radius: 10px 10px 0 0;
+        }
+        
+        .menu-content {
+            padding: 20px;
+        }
+        
+        .menu-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin-bottom: 10px;
+            color: #2c3e50;
+        }
+        
+        .menu-description {
+            color: #7f8c8d;
+            font-size: 0.9rem;
+            margin-bottom: 15px;
+            line-height: 1.5;
+        }
+        
+        .menu-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .menu-price {
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: #27ae60;
+        }
+        
+        .menu-category {
+            background: #e8f4fc;
+            color: #3498db;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+        
+        .menu-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+        
+        .category-filter {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        
+        .category-btn {
+            padding: 8px 16px;
+            background: #f8f9fa;
+            border: 2px solid #dee2e6;
+            border-radius: 20px;
+            cursor: pointer;
+            font-weight: 600;
+            color: #495057;
+        }
+        
+        .category-btn.active {
+            background: #3498db;
+            color: white;
+            border-color: #3498db;
+        }
+        
+        .category-btn:hover {
+            border-color: #3498db;
+        }
+        
+        .empty-cart {
+            text-align: center;
+            padding: 60px 20px;
+            color: #7f8c8d;
+        }
+        
+        .empty-cart i {
+            font-size: 4rem;
+            margin-bottom: 20px;
+            color: #ddd;
+        }
+        
+        .order-card {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 15px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .order-status {
+            display: inline-block;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+        
+        .status-pending { background: #fff3cd; color: #856404; }
+        .status-preparing { background: #cce5ff; color: #004085; }
+        .status-ready { background: #d4edda; color: #155724; }
+        .status-completed { background: #d1ecf1; color: #0c5460; }
+    </style>
+</head>
+<body>
+    <div class="dashboard-container">
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <h2><i class="fas fa-utensils"></i> Campus Canteen</h2>
+                <p style="font-size: 0.9rem; opacity: 0.8;">Student Portal</p>
+            </div>
+            
+            <div class="user-info">
+                <i class="fas fa-user-graduate"></i>
+                <span id="userName">Student User</span>
+            </div>
+            
+            <ul class="sidebar-menu">
+                <li><a href="#" class="active" data-section="menu"><i class="fas fa-utensils"></i> Order Food</a></li>
+                <li><a href="#" data-section="cart"><i class="fas fa-shopping-cart"></i> My Cart <span id="cartCount" class="cart-badge">0</span></a></li>
+                <li><a href="#" data-section="orders"><i class="fas fa-history"></i> Order History</a></li>
+                <li><a href="#" data-section="profile"><i class="fas fa-user"></i> My Profile</a></li>
+            </ul>
+            
+            <div style="padding: 20px; margin-top: auto;">
+                <button class="btn-logout" onclick="logout()">
+                    <i class="fas fa-sign-out-alt"></i> Logout
+                </button>
+            </div>
+        </div>
+        
+        <!-- Main Content -->
+        <div class="main-content">
+            <div class="header">
+                <h1 id="pageTitle">Student Dashboard</h1>
+                <div class="header-actions">
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <div id="currentTime" style="color: #7f8c8d;"></div>
+                        <div style="display: flex; align-items: center; gap: 5px;">
+                            <i class="fas fa-shopping-cart" style="color: #3498db;"></i>
+                            <span id="headerCartCount">0 items</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Menu Section -->
+            <div id="menu-section" class="content-section">
+                <div class="card">
+                    <div class="card-header">
+                        <h2><i class="fas fa-utensils"></i> Today's Menu</h2>
+                        <div class="category-filter">
+                            <button class="category-btn active" data-category="all">All</button>
+                            <button class="category-btn" data-category="Main Course">Main Course</button>
+                            <button class="category-btn" data-category="Salads">Salads</button>
+                            <button class="category-btn" data-category="Sides">Sides</button>
+                            <button class="category-btn" data-category="Drinks">Drinks</button>
+                            <button class="category-btn" data-category="Desserts">Desserts</button>
+                        </div>
+                    </div>
+                    
+                    <div id="menuItemsContainer" class="menu-grid">
+                        <!-- Menu items will be loaded here -->
+                    </div>
+                    
+                    <div id="loadingMessage" style="text-align: center; padding: 40px;">
+                        <i class="fas fa-spinner fa-spin" style="font-size: 2rem; color: #3498db;"></i>
+                        <p>Loading menu...</p>
+                    </div>
+                    
+                    <div id="noMenuMessage" style="display: none; text-align: center; padding: 40px;">
+                        <i class="fas fa-utensils" style="font-size: 3rem; color: #ddd;"></i>
+                        <h3>No menu items available</h3>
+                        <p>Please check back later.</p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Cart Section -->
+            <div id="cart-section" class="content-section" style="display: none;">
+                <div class="card">
+                    <div class="card-header">
+                        <h2><i class="fas fa-shopping-cart"></i> My Cart</h2>
+                        <button class="btn btn-success" id="checkoutBtn" style="display: none;">
+                            <i class="fas fa-credit-card"></i> Checkout
+                        </button>
+                    </div>
+                    
+                    <div id="cartItemsContainer">
+                        <!-- Cart items will be loaded here -->
+                        <div id="emptyCartMessage" style="text-align: center; padding: 60px;">
+                            <i class="fas fa-shopping-cart" style="font-size: 4rem; color: #ddd;"></i>
+                            <h3>Your cart is empty</h3>
+                            <p>Add some delicious items from the menu!</p>
+                            <button class="btn" onclick="showSection('menu')">
+                                <i class="fas fa-utensils"></i> Browse Menu
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div id="cartSummary" style="display: none;">
+                        <div style="padding: 20px;">
+                            <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+                                <span>Subtotal:</span>
+                                <span id="cartSubtotal">$0.00</span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+                                <span>Tax (10%):</span>
+                                <span id="cartTax">$0.00</span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; font-size: 1.2rem; font-weight: bold; padding-top: 10px; border-top: 2px solid #eee;">
+                                <span>Total:</span>
+                                <span id="cartTotal">$0.00</span>
+                            </div>
+                        </div>
+                        
+                        <div style="padding: 20px; border-top: 1px solid #eee;">
+                            <h4><i class="fas fa-sticky-note"></i> Special Instructions</h4>
+                            <textarea id="orderInstructions" placeholder="Any special requests or dietary restrictions..." rows="3" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px; margin-top: 10px;"></textarea>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Order History Section -->
+            <div id="orders-section" class="content-section" style="display: none;">
+                <div class="card">
+                    <div class="card-header">
+                        <h2><i class="fas fa-history"></i> My Order History</h2>
+                    </div>
+                    
+                    <div id="ordersContainer">
+                        <!-- Orders will be loaded here -->
+                    </div>
+                    
+                    <div id="noOrdersMessage" style="display: none; text-align: center; padding: 40px;">
+                        <i class="fas fa-history" style="font-size: 3rem; color: #ddd;"></i>
+                        <h3>No orders yet</h3>
+                        <p>Your order history will appear here.</p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Profile Section -->
+            <div id="profile-section" class="content-section" style="display: none;">
+                <div class="card">
+                    <div class="card-header">
+                        <h2><i class="fas fa-user"></i> My Profile</h2>
+                    </div>
+                    
+                    <div style="padding: 20px;">
+                        <div style="display: flex; align-items: center; gap: 20px; margin-bottom: 30px;">
+                            <div style="width: 80px; height: 80px; border-radius: 50%; background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%); display: flex; align-items: center; justify-content: center; font-size: 2.5rem; color: white;">
+                                <i class="fas fa-user-graduate"></i>
+                            </div>
+                            <div>
+                                <h3 id="profileName">Student User</h3>
+                                <p id="profileEmail">student@canteen.com</p>
+                                <span style="background: #3498db; color: white; padding: 5px 15px; border-radius: 20px; font-size: 0.9rem; font-weight: bold;">Student</span>
+                            </div>
+                        </div>
+                        
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px;">
+                            <div>
+                                <label style="color: #7f8c8d; font-size: 0.9rem;">Email</label>
+                                <p style="font-weight: 600; font-size: 1.1rem;" id="profileEmailDetail">student@canteen.com</p>
+                            </div>
+                            <div>
+                                <label style="color: #7f8c8d; font-size: 0.9rem;">Student ID</label>
+                                <p style="font-weight: 600; font-size: 1.1rem;">STU20240001</p>
+                            </div>
+                            <div>
+                                <label style="color: #7f8c8d; font-size: 0.9rem;">Member Since</label>
+                                <p style="font-weight: 600; font-size: 1.1rem;" id="memberSince">2024</p>
+                            </div>
+                            <div>
+                                <label style="color: #7f8c8d; font-size: 0.9rem;">Total Orders</label>
+                                <p style="font-weight: 600; font-size: 1.1rem;" id="totalOrdersCount">0</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Checkout Modal -->
+    <div id="checkoutModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fas fa-credit-card"></i> Confirm Order</h3>
+                <button class="btn-close" onclick="closeModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div id="orderSummary">
+                    <!-- Order summary will be loaded here -->
+                </div>
+                
+                <div style="margin-top: 20px;">
+                    <h4>Payment Method</h4>
+                    <select id="paymentMethod" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px; margin-top: 10px;">
+                        <option value="cash">Cash on Pickup</option>
+                        <option value="card">Credit/Debit Card</option>
+                        <option value="wallet">Digital Wallet</option>
+                    </select>
+                </div>
+                
+                <div style="margin-top: 20px; padding: 15px; background: #f8f9fa; border-radius: 8px;">
+                    <h4><i class="fas fa-clock"></i> Estimated Pickup Time</h4>
+                    <p style="font-weight: bold; color: #27ae60;">15-20 minutes</p>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-success" onclick="placeOrder()">
+                    <i class="fas fa-check-circle"></i> Place Order
+                </button>
+                <button class="btn btn-danger" onclick="closeModal()">Cancel</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Success Modal -->
+    <div id="successModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fas fa-check-circle" style="color: #27ae60;"></i> Order Placed!</h3>
+            </div>
+            <div class="modal-body">
+                <div style="text-align: center; padding: 20px;">
+                    <i class="fas fa-check-circle" style="font-size: 4rem; color: #27ae60; margin-bottom: 20px;"></i>
+                    <h3>Thank you for your order!</h3>
+                    <p>Your order ID is: <strong id="orderIdDisplay">#0000</strong></p>
+                    <p>Estimated pickup time: <strong>15-20 minutes</strong></p>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-success" onclick="closeSuccessModal()">
+                    <i class="fas fa-thumbs-up"></i> Great!
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // Global variables
+        let cart = [];
+        let menuItems = [];
+        
+        // Initialize when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            loadMenuItems();
+            loadCartFromStorage();
+            loadOrders();
+            updateCartDisplay();
+            setupEventListeners();
+            updateTime();
+            setInterval(updateTime, 60000);
+        });
+        
+        function setupEventListeners() {
+            // Navigation
+            document.querySelectorAll('.sidebar-menu a').forEach(link => {
+                link.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    
+                    // Remove active class from all links
+                    document.querySelectorAll('.sidebar-menu a').forEach(l => l.classList.remove('active'));
+                    
+                    // Add active class to clicked link
+                    this.classList.add('active');
+                    
+                    // Get section ID
+                    const sectionId = this.getAttribute('data-section');
+                    
+                    // Hide all sections
+                    document.querySelectorAll('.content-section').forEach(section => {
+                        section.style.display = 'none';
+                    });
+                    
+                    // Show selected section
+                    document.getElementById(`${sectionId}-section`).style.display = 'block';
+                    
+                    // Update page title
+                    const titles = {
+                        'menu': 'Order Food',
+                        'cart': 'My Cart',
+                        'orders': 'Order History',
+                        'profile': 'My Profile'
+                    };
+                    document.getElementById('pageTitle').textContent = titles[sectionId] || 'Student Dashboard';
+                    
+                    // Load data if needed
+                    if (sectionId === 'cart') {
+                        updateCartDisplay();
+                    }
+                });
+            });
+            
+            // Category filter buttons
+            document.querySelectorAll('.category-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    // Remove active class from all buttons
+                    document.querySelectorAll('.category-btn').forEach(b => b.classList.remove('active'));
+                    
+                    // Add active class to clicked button
+                    this.classList.add('active');
+                    
+                    // Filter menu items
+                    const category = this.getAttribute('data-category');
+                    filterMenuItems(category);
+                });
+            });
+            
+            // Checkout button
+            document.getElementById('checkoutBtn').addEventListener('click', showCheckoutModal);
+            
+            // Modal close
+            document.querySelectorAll('.modal').forEach(modal => {
+                modal.addEventListener('click', function(e) {
+                    if (e.target === this) {
+                        this.style.display = 'none';
+                    }
+                });
+            });
+        }
+        
+        async function loadMenuItems() {
+            try {
+                const response = await fetch('/api/menu');
+                if (!response.ok) throw new Error('Failed to load menu');
+                
+                menuItems = await response.json();
+                displayMenuItems(menuItems);
+                
+                document.getElementById('loadingMessage').style.display = 'none';
+            } catch (error) {
+                console.error('Error loading menu:', error);
+                document.getElementById('loadingMessage').innerHTML = `
+                    <i class="fas fa-exclamation-triangle" style="color: #e74c3c;"></i>
+                    <p>Failed to load menu. Please try again.</p>
+                `;
+            }
+        }
+        
+        function displayMenuItems(items) {
+            const container = document.getElementById('menuItemsContainer');
+            container.innerHTML = '';
+            
+            if (items.length === 0) {
+                document.getElementById('noMenuMessage').style.display = 'block';
+                return;
+            }
+            
+            document.getElementById('noMenuMessage').style.display = 'none';
+            
+            items.forEach(item => {
+                const cartItem = cart.find(ci => ci.id === item.id);
+                const quantity = cartItem ? cartItem.quantity : 0;
+                
+                const itemElement = document.createElement('div');
+                itemElement.className = 'menu-card';
+                itemElement.innerHTML = `
+                    <div class="menu-image">
+                        <i class="fas fa-${getCategoryIcon(item.category)}"></i>
+                    </div>
+                    <div class="menu-content">
+                        <h3 class="menu-title">${item.name}</h3>
+                        <p class="menu-description">${item.description}</p>
+                        <div class="menu-footer">
+                            <div class="menu-price">$${item.price.toFixed(2)}</div>
+                            <span class="menu-category">${item.category}</span>
+                        </div>
+                        <div class="quantity-controls">
+                            <button class="quantity-btn" onclick="decreaseQuantity(${item.id})">-</button>
+                            <span class="quantity-display" id="quantity-${item.id}">${quantity}</span>
+                            <button class="quantity-btn" onclick="increaseQuantity(${item.id})">+</button>
+                            <button class="add-to-cart-btn" onclick="addToCart(${item.id})">
+                                <i class="fas fa-cart-plus"></i> Add
+                            </button>
+                        </div>
+                    </div>
+                `;
+                container.appendChild(itemElement);
+            });
+        }
+        
+        function filterMenuItems(category) {
+            if (category === 'all') {
+                displayMenuItems(menuItems);
+            } else {
+                const filteredItems = menuItems.filter(item => item.category === category);
+                displayMenuItems(filteredItems);
+            }
+        }
+        
+        function getCategoryIcon(category) {
+            const icons = {
+                'Main Course': 'hamburger',
+                'Salads': 'leaf',
+                'Sides': 'potato',
+                'Drinks': 'wine-bottle',
+                'Desserts': 'ice-cream'
+            };
+            return icons[category] || 'utensils';
+        }
+        
+        function increaseQuantity(itemId) {
+            const item = menuItems.find(m => m.id === itemId);
+            if (!item) return;
+            
+            const cartItem = cart.find(ci => ci.id === itemId);
+            if (cartItem) {
+                cartItem.quantity++;
+            } else {
+                cart.push({
+                    id: itemId,
+                    name: item.name,
+                    price: item.price,
+                    quantity: 1
+                });
+            }
+            
+            saveCartToStorage();
+            updateCartDisplay();
+            updateQuantityDisplay(itemId);
+            showNotification(`${item.name} added to cart!`);
+        }
+        
+        function decreaseQuantity(itemId) {
+            const cartItemIndex = cart.findIndex(ci => ci.id === itemId);
+            if (cartItemIndex === -1) return;
+            
+            if (cart[cartItemIndex].quantity > 1) {
+                cart[cartItemIndex].quantity--;
+            } else {
+                cart.splice(cartItemIndex, 1);
+            }
+            
+            saveCartToStorage();
+            updateCartDisplay();
+            updateQuantityDisplay(itemId);
+        }
+        
+        function addToCart(itemId) {
+            increaseQuantity(itemId);
+        }
+        
+        function updateQuantityDisplay(itemId) {
+            const cartItem = cart.find(ci => ci.id === itemId);
+            const quantity = cartItem ? cartItem.quantity : 0;
+            
+            const displayElement = document.getElementById(`quantity-${itemId}`);
+            if (displayElement) {
+                displayElement.textContent = quantity;
+            }
+        }
+        
+        function loadCartFromStorage() {
+            const savedCart = localStorage.getItem('canteenCart');
+            if (savedCart) {
+                try {
+                    cart = JSON.parse(savedCart);
+                } catch (error) {
+                    cart = [];
+                }
+            }
+        }
+        
+        function saveCartToStorage() {
+            localStorage.setItem('canteenCart', JSON.stringify(cart));
+        }
+        
+        function updateCartDisplay() {
+            const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
+            
+            // Update cart count badges
+            document.getElementById('cartCount').textContent = totalItems;
+            document.getElementById('headerCartCount').textContent = `${totalItems} ${totalItems === 1 ? 'item' : 'items'}`;
+            
+            // Update cart page
+            const container = document.getElementById('cartItemsContainer');
+            const emptyMessage = document.getElementById('emptyCartMessage');
+            const cartSummary = document.getElementById('cartSummary');
+            const checkoutBtn = document.getElementById('checkoutBtn');
+            
+            if (cart.length === 0) {
+                container.innerHTML = '';
+                container.appendChild(emptyMessage);
+                cartSummary.style.display = 'none';
+                checkoutBtn.style.display = 'none';
+                return;
+            }
+            
+            emptyMessage.style.display = 'none';
+            cartSummary.style.display = 'block';
+            checkoutBtn.style.display = 'inline-flex';
+            
+            let html = '';
+            let subtotal = 0;
+            
+            cart.forEach(item => {
+                const itemTotal = item.price * item.quantity;
+                subtotal += itemTotal;
+                
+                html += `
+                    <div class="cart-item">
+                        <div style="flex: 1;">
+                            <h4 style="margin: 0;">${item.name}</h4>
+                            <p style="margin: 5px 0; color: #7f8c8d;">$${item.price.toFixed(2)} each</p>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <button class="quantity-btn" onclick="updateCartItemQuantity(${item.id}, -1)">-</button>
+                            <span style="font-weight: bold; min-width: 30px; text-align: center;">${item.quantity}</span>
+                            <button class="quantity-btn" onclick="updateCartItemQuantity(${item.id}, 1)">+</button>
+                        </div>
+                        <div style="font-weight: bold; font-size: 1.1rem; min-width: 80px; text-align: right;">
+                            $${itemTotal.toFixed(2)}
+                        </div>
+                        <div style="margin-left: 10px;">
+                            <button class="quantity-btn" onclick="removeFromCart(${item.id})" style="border-color: #e74c3c; color: #e74c3c;">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            container.innerHTML = html;
+            
+            const tax = subtotal * 0.10;
+            const total = subtotal + tax;
+            
+            document.getElementById('cartSubtotal').textContent = `$${subtotal.toFixed(2)}`;
+            document.getElementById('cartTax').textContent = `$${tax.toFixed(2)}`;
+            document.getElementById('cartTotal').textContent = `$${total.toFixed(2)}`;
+        }
+        
+        function updateCartItemQuantity(itemId, change) {
+            const cartItemIndex = cart.findIndex(ci => ci.id === itemId);
+            if (cartItemIndex === -1) return;
+            
+            if (cart[cartItemIndex].quantity + change >= 1) {
+                cart[cartItemIndex].quantity += change;
+            } else {
+                removeFromCart(itemId);
+                return;
+            }
+            
+            saveCartToStorage();
+            updateCartDisplay();
+            updateQuantityDisplay(itemId);
+        }
+        
+        function removeFromCart(itemId) {
+            cart = cart.filter(item => item.id !== itemId);
+            saveCartToStorage();
+            updateCartDisplay();
+            updateQuantityDisplay(itemId);
+            showNotification('Item removed from cart');
+        }
+        
+        async function loadOrders() {
+            try {
+                const response = await fetch('/api/orders');
+                if (!response.ok) throw new Error('Failed to load orders');
+                
+                const orders = await response.json();
+                displayOrders(orders);
+                
+                // Update profile stats
+                document.getElementById('totalOrdersCount').textContent = orders.length;
+            } catch (error) {
+                console.error('Error loading orders:', error);
+                document.getElementById('ordersContainer').innerHTML = `
+                    <div style="text-align: center; padding: 40px; color: #e74c3c;">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <p>Failed to load orders</p>
+                    </div>
+                `;
+            }
+        }
+        
+        function displayOrders(orders) {
+            const container = document.getElementById('ordersContainer');
+            
+            if (orders.length === 0) {
+                document.getElementById('noOrdersMessage').style.display = 'block';
+                container.innerHTML = '';
+                return;
+            }
+            
+            document.getElementById('noOrdersMessage').style.display = 'none';
+            
+            let html = '';
+            orders.forEach(order => {
+                const orderDate = new Date(order.order_date);
+                const formattedDate = orderDate.toLocaleDateString() + ' ' + orderDate.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+                
+                html += `
+                    <div class="order-card">
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+                            <div style="font-weight: bold; color: #2c3e50;">Order #${order.id}</div>
+                            <div style="color: #7f8c8d;">${formattedDate}</div>
+                        </div>
+                        <div style="margin-bottom: 15px;">
+                            <span class="order-status status-${order.status}">${order.status.charAt(0).toUpperCase() + order.status.slice(1)}</span>
+                        </div>
+                        <div style="margin-bottom: 10px;">
+                            ${order.items.map(item => `
+                                <div style="display: flex; justify-content: space-between; padding: 5px 0; border-bottom: 1px solid #eee;">
+                                    <span>${item.quantity}x ${item.name}</span>
+                                    <span>$${(item.price * item.quantity).toFixed(2)}</span>
+                                </div>
+                            `).join('')}
+                        </div>
+                        <div style="display: flex; justify-content: space-between; font-weight: bold; font-size: 1.1rem; padding-top: 10px; border-top: 2px solid #eee;">
+                            <span>Total:</span>
+                            <span>$${order.total.toFixed(2)}</span>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            container.innerHTML = html;
+        }
+        
+        function showCheckoutModal() {
+            if (cart.length === 0) {
+                showNotification('Your cart is empty!', 'error');
+                return;
+            }
+            
+            // Calculate totals
+            const subtotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+            const tax = subtotal * 0.10;
+            const total = subtotal + tax;
+            
+            // Build order summary
+            let summaryHtml = '<h4>Order Summary:</h4>';
+            cart.forEach(item => {
+                const itemTotal = item.price * item.quantity;
+                summaryHtml += `
+                    <div style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #eee;">
+                        <span>${item.quantity}x ${item.name}</span>
+                        <span>$${itemTotal.toFixed(2)}</span>
+                    </div>
+                `;
+            });
+            
+            summaryHtml += `
+                <div style="margin-top: 15px;">
+                    <div style="display: flex; justify-content: space-between; padding: 8px 0;">
+                        <span>Subtotal:</span>
+                        <span>$${subtotal.toFixed(2)}</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; padding: 8px 0;">
+                        <span>Tax (10%):</span>
+                        <span>$${tax.toFixed(2)}</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; padding: 8px 0; font-weight: bold; font-size: 1.2rem; border-top: 2px solid #eee; margin-top: 10px;">
+                        <span>Total:</span>
+                        <span>$${total.toFixed(2)}</span>
+                    </div>
+                </div>
+            `;
+            
+            document.getElementById('orderSummary').innerHTML = summaryHtml;
+            document.getElementById('checkoutModal').style.display = 'flex';
+        }
+        
+        async function placeOrder() {
+            if (cart.length === 0) {
+                showNotification('Your cart is empty!', 'error');
+                return;
+            }
+            
+            // Calculate totals
+            const subtotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+            const tax = subtotal * 0.10;
+            const total = subtotal + tax;
+            
+            const orderData = {
+                items: cart.map(item => ({
+                    id: item.id,
+                    name: item.name,
+                    price: item.price,
+                    quantity: item.quantity
+                })),
+                total: total,
+                special_instructions: document.getElementById('orderInstructions').value || '',
+                payment_method: document.getElementById('paymentMethod').value
+            };
+            
+            try {
+                const response = await fetch('/api/orders', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(orderData)
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    // Clear cart
+                    cart = [];
+                    saveCartToStorage();
+                    updateCartDisplay();
+                    
+                    // Reset menu quantities
+                    menuItems.forEach(item => {
+                        updateQuantityDisplay(item.id);
+                    });
+                    
+                    // Show success modal
+                    document.getElementById('orderIdDisplay').textContent = `#${result.orderId}`;
+                    document.getElementById('checkoutModal').style.display = 'none';
+                    document.getElementById('successModal').style.display = 'flex';
+                    
+                    // Reload orders
+                    setTimeout(loadOrders, 1000);
+                } else {
+                    showNotification('Failed to place order: ' + result.error, 'error');
+                }
+            } catch (error) {
+                console.error('Error placing order:', error);
+                showNotification('Error placing order. Please try again.', 'error');
+            }
+        }
+        
+        function closeModal() {
+            document.getElementById('checkoutModal').style.display = 'none';
+        }
+        
+        function closeSuccessModal() {
+            document.getElementById('successModal').style.display = 'none';
+            showSection('orders');
+        }
+        
+        function showSection(sectionId) {
+            document.querySelector(`[data-section="${sectionId}"]`).click();
+        }
+        
+        function updateTime() {
+            const now = new Date();
+            const timeString = now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+            const dateString = now.toLocaleDateString();
+            document.getElementById('currentTime').textContent = `${dateString} ${timeString}`;
+        }
+        
+        function showNotification(message, type = 'success') {
+            // Create notification element
+            const notification = document.createElement('div');
+            notification.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                padding: 15px 20px;
+                border-radius: 8px;
+                color: white;
+                font-weight: bold;
+                z-index: 10000;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+                min-width: 300px;
+                animation: slideIn 0.3s ease;
+            `;
+            
+            // Set color based on type
+            if (type === 'success') {
+                notification.style.backgroundColor = '#27ae60';
+            } else if (type === 'error') {
+                notification.style.backgroundColor = '#e74c3c';
+            } else {
+                notification.style.backgroundColor = '#3498db';
+            }
+            
+            notification.innerHTML = `
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <i class="fas fa-${type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-circle' : 'info-circle'}"></i>
+                    <span>${message}</span>
+                </div>
+            `;
+            
+            document.body.appendChild(notification);
+            
+            // Add animation style
+            if (!document.querySelector('#notification-styles')) {
+                const style = document.createElement('style');
+                style.id = 'notification-styles';
+                style.textContent = `
+                    @keyframes slideIn {
+                        from { transform: translateX(100%); opacity: 0; }
+                        to { transform: translateX(0); opacity: 1; }
+                    }
+                    @keyframes slideOut {
+                        from { transform: translateX(0); opacity: 1; }
+                        to { transform: translateX(100%); opacity: 0; }
+                    }
+                `;
+                document.head.appendChild(style);
+            }
+            
+            // Remove after 3 seconds
+            setTimeout(() => {
+                notification.style.animation = 'slideOut 0.3s ease';
+                setTimeout(() => {
+                    if (notification.parentNode) {
+                        notification.parentNode.removeChild(notification);
+                    }
+                }, 300);
+            }, 3000);
+        }
+        
+        function logout() {
+            localStorage.removeItem('canteenCart');
+            window.location.href = '/';
+        }
+    </script>
+</body>
+</html>
