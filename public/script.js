@@ -496,12 +496,12 @@ document.addEventListener('DOMContentLoaded', function () {
     async function loadStudentMenu() {
         const container = document.getElementById('menuContainer');
         if (!container) return;
-        container.innerHTML = '<p style="color:var(--text-secondary);padding:20px">Loading menu…</p>';
+        container.innerHTML = '<p style="color:var(--text-2);padding:20px">Loading menu…</p>';
         try {
             const res = await fetch(`${API_URL}/menu`);
             menuItems = await res.json();
             if (!menuItems.length) {
-                container.innerHTML = '<p style="color:var(--text-secondary);padding:20px">No menu items available.</p>';
+                container.innerHTML = '<p style="color:var(--text-2);padding:20px">No menu items available.</p>';
                 return;
             }
             container.innerHTML = '';
@@ -542,7 +542,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 container.appendChild(el);
             });
         } catch {
-            container.innerHTML = '<p style="color:var(--danger);padding:20px">Failed to load menu.</p>';
+            container.innerHTML = '<p style="color:var(--magenta);padding:20px">Failed to load menu.</p>';
         }
     }
 
@@ -553,12 +553,12 @@ document.addEventListener('DOMContentLoaded', function () {
     async function loadWorkerMenu(containerId = 'workerMenuContainer') {
         const container = document.getElementById(containerId);
         if (!container) return;
-        container.innerHTML = '<p style="color:var(--text-secondary);padding:20px">Loading menu…</p>';
+        container.innerHTML = '<p style="color:var(--text-2);padding:20px">Loading menu…</p>';
         try {
             const res   = await fetch(`${API_URL}/menu`);
             const items = await res.json();
             if (!items.length) {
-                container.innerHTML = '<p style="color:var(--text-secondary);padding:20px">No menu items yet. Add one above!</p>';
+                container.innerHTML = '<p style="color:var(--text-2);padding:20px">No menu items yet. Add one above!</p>';
                 return;
             }
             container.innerHTML = items.map(item => {
@@ -582,7 +582,7 @@ document.addEventListener('DOMContentLoaded', function () {
                                 <i class="fas fa-${avail ? 'check-circle' : 'times-circle'}"></i>
                                 ${avail ? 'Available' : 'Not Available'}
                             </span>
-                            <span style="color:var(--text-muted);font-size:12px">
+                            <span style="color:var(--text-3);font-size:12px">
                                 <i class="fas fa-clock"></i> ${added}
                             </span>
                         </div>
@@ -598,7 +598,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 </div>`;
             }).join('');
         } catch {
-            container.innerHTML = '<p style="color:var(--danger);padding:20px">Failed to load menu.</p>';
+            container.innerHTML = '<p style="color:var(--magenta);padding:20px">Failed to load menu.</p>';
         }
     }
 
@@ -726,7 +726,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 total += sub;
                 return `<div class="cart-item"><span>${item.name} × ${item.quantity}</span><span>₹${sub}</span></div>`;
               }).join('')
-            : '<p style="color:var(--text-muted);font-size:13px;padding:8px 0">Cart is empty</p>';
+            : '<p style="color:var(--text-3);font-size:13px;padding:8px 0">Cart is empty</p>';
         cartTotal.textContent = total;
     }
 
@@ -737,7 +737,7 @@ document.addEventListener('DOMContentLoaded', function () {
        Online → place order (pending) → open UPI app
               → when user returns to tab → mark paid → show success
     ═══════════════════════════════════════════════════ */
-    const UPI_ID   = '9618919586-2@axl'; // ← your PhonePe UPI ID
+    const UPI_ID   = 'sodemunithanmayteja-1@oksbi'; // ← your PhonePe UPI ID
     const UPI_NAME = 'Sode Muni Thanmay Te';
 
     const checkoutModal   = document.getElementById('checkoutModal');
@@ -928,12 +928,12 @@ document.addEventListener('DOMContentLoaded', function () {
     async function loadStudentOrders() {
         const cont = document.getElementById('studentOrdersContainer');
         if (!cont) return;
-        cont.innerHTML = '<p style="color:var(--text-secondary)">Loading orders…</p>';
+        cont.innerHTML = '<p style="color:var(--text-2)">Loading orders…</p>';
         try {
             const res    = await fetch(`${API_URL}/orders/my-orders`, { headers: { Authorization: `Bearer ${token}` } });
             const orders = await res.json();
             if (!orders.length) {
-                cont.innerHTML = '<p style="color:var(--text-secondary);padding:20px">No orders yet. Go order something! 😋</p>';
+                cont.innerHTML = '<p style="color:var(--text-2);padding:20px">No orders yet. Go order something! 😋</p>';
                 return;
             }
             cont.innerHTML = orders.map(o => `
@@ -948,11 +948,11 @@ document.addEventListener('DOMContentLoaded', function () {
                             <span>₹${i.price * i.quantity}</span>
                         </div>`).join('')}</div>` : ''}
                     <div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px">
-                        <span style="color:var(--text-muted);font-size:12px">${o.payment_method} · ${new Date(o.order_date || Date.now()).toLocaleDateString('en-IN')}</span>
+                        <span style="color:var(--text-3);font-size:12px">${o.payment_method} · ${new Date(o.order_date || Date.now()).toLocaleDateString('en-IN')}</span>
                         <span class="order-total">₹${o.total_amount}</span>
                     </div>
                 </div>`).join('');
-        } catch { cont.innerHTML = '<p style="color:var(--danger)">Failed to load orders.</p>'; }
+        } catch { cont.innerHTML = '<p style="color:var(--magenta)">Failed to load orders.</p>'; }
     }
 
     /* ═══════════════════════════════════════════════════
@@ -961,14 +961,14 @@ document.addEventListener('DOMContentLoaded', function () {
     async function loadWorkerOrders() {
         const cont = document.getElementById('workerOrdersContainer');
         if (!cont) return;
-        cont.innerHTML = '<p style="color:var(--text-secondary)">Loading orders…</p>';
+        cont.innerHTML = '<p style="color:var(--text-2)">Loading orders…</p>';
         try {
             const filter = document.getElementById('orderFilter')?.value || 'all';
             const url    = filter !== 'all' ? `${API_URL}/orders?status=${filter}` : `${API_URL}/orders`;
             const res    = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
             const orders = await res.json();
             if (!orders.length) {
-                cont.innerHTML = '<p style="color:var(--text-secondary);padding:20px">No orders found.</p>';
+                cont.innerHTML = '<p style="color:var(--text-2);padding:20px">No orders found.</p>';
                 return;
             }
             cont.innerHTML = orders.map(o => {
@@ -980,10 +980,10 @@ document.addEventListener('DOMContentLoaded', function () {
                     <div class="order-header">
                         <div>
                             <span class="order-number">#${o.order_number}</span>
-                            <span style="color:var(--text-secondary);font-size:13px;margin-left:10px">
-                                <i class="fas fa-user" style="color:var(--accent);margin-right:4px"></i>${o.full_name || '—'}
+                            <span style="color:var(--text-2);font-size:13px;margin-left:10px">
+                                <i class="fas fa-user" style="color:var(--teal);margin-right:4px"></i>${o.full_name || '—'}
                             </span>
-                            <span style="color:var(--text-muted);font-size:12px;margin-left:8px">
+                            <span style="color:var(--text-3);font-size:12px;margin-left:8px">
                                 <i class="fas fa-id-card" style="margin-right:3px"></i>${o.admission_number || '—'}
                             </span>
                         </div>
@@ -991,7 +991,7 @@ document.addEventListener('DOMContentLoaded', function () {
                             <span class="order-status status-${o.status}">${o.status}</span>
                             <button onclick="deleteOrder(${o.id})"
                                 style="background:rgba(255,71,87,0.12);border:1.5px solid rgba(255,71,87,0.35);
-                                       color:var(--danger);border-radius:8px;padding:5px 10px;cursor:pointer;
+                                       color:var(--magenta);border-radius:8px;padding:5px 10px;cursor:pointer;
                                        font-size:12px;font-weight:600;transition:all 0.2s"
                                 onmouseover="this.style.background='rgba(255,71,87,0.25)'"
                                 onmouseout="this.style.background='rgba(255,71,87,0.12)'">
@@ -999,16 +999,16 @@ document.addEventListener('DOMContentLoaded', function () {
                             </button>
                         </div>
                     </div>
-                    <div style="color:var(--text-secondary);font-size:13px;margin:8px 0;display:flex;flex-wrap:wrap;gap:12px;align-items:center">
-                        <span><i class="fas fa-rupee-sign" style="color:var(--accent)"></i> ₹${o.total_amount}</span>
-                        <span><i class="fas fa-wallet" style="color:var(--accent)"></i> ${o.payment_method}</span>
-                        <span><i class="fas fa-calendar" style="color:var(--accent)"></i> ${dateStr}</span>
-                        <span><i class="fas fa-clock" style="color:var(--accent)"></i> ${timeStr}</span>
+                    <div style="color:var(--text-2);font-size:13px;margin:8px 0;display:flex;flex-wrap:wrap;gap:12px;align-items:center">
+                        <span><i class="fas fa-rupee-sign" style="color:var(--teal)"></i> ₹${o.total_amount}</span>
+                        <span><i class="fas fa-wallet" style="color:var(--teal)"></i> ${o.payment_method}</span>
+                        <span><i class="fas fa-calendar" style="color:var(--teal)"></i> ${dateStr}</span>
+                        <span><i class="fas fa-clock" style="color:var(--teal)"></i> ${timeStr}</span>
                     </div>
                     <div style="display:flex;align-items:center;gap:10px;margin-top:10px">
-                        <span style="color:var(--text-muted);font-size:13px">Update Status:</span>
+                        <span style="color:var(--text-3);font-size:13px">Update Status:</span>
                         <select onchange="updateOrderStatus(${o.id}, this.value)"
-                            style="background:var(--input-bg);border:1px solid var(--border);color:var(--text-primary);
+                            style="background:var(--bg3);border:1px solid var(--border);color:var(--text-1);
                                    padding:7px 12px;border-radius:8px;font-size:13px;cursor:pointer;flex:1">
                             ${['pending','confirmed','preparing','ready','completed','cancelled']
                                 .map(s => `<option value="${s}" ${o.status === s ? 'selected' : ''}>${s.charAt(0).toUpperCase() + s.slice(1)}</option>`)
@@ -1017,7 +1017,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     </div>
                 </div>`;
             }).join('');
-        } catch { cont.innerHTML = '<p style="color:var(--danger)">Failed to load orders.</p>'; }
+        } catch { cont.innerHTML = '<p style="color:var(--magenta)">Failed to load orders.</p>'; }
     }
 
     /* ═══════════════════════════════════════════════════
@@ -1026,12 +1026,12 @@ document.addEventListener('DOMContentLoaded', function () {
     async function loadAdminOrders() {
         const cont = document.getElementById('adminOrdersContainer');
         if (!cont) return;
-        cont.innerHTML = '<p style="color:var(--text-secondary)">Loading orders…</p>';
+        cont.innerHTML = '<p style="color:var(--text-2)">Loading orders…</p>';
         try {
             const res    = await fetch(`${API_URL}/orders`, { headers: { Authorization: `Bearer ${token}` } });
             const orders = await res.json();
             if (!orders.length) {
-                cont.innerHTML = '<p style="color:var(--text-secondary);padding:20px">No orders found.</p>';
+                cont.innerHTML = '<p style="color:var(--text-2);padding:20px">No orders found.</p>';
                 return;
             }
             cont.innerHTML = orders.map(o => `
@@ -1039,13 +1039,13 @@ document.addEventListener('DOMContentLoaded', function () {
                     <div class="order-header">
                         <div>
                             <span class="order-number">#${o.order_number}</span>
-                            <span style="color:var(--text-secondary);font-size:13px;margin-left:10px">${o.full_name || '—'}</span>
+                            <span style="color:var(--text-2);font-size:13px;margin-left:10px">${o.full_name || '—'}</span>
                         </div>
                         <span class="order-status status-${o.status}">${o.status}</span>
                     </div>
                     <div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px">
                         <select onchange="updateOrderStatus(${o.id}, this.value)"
-                            style="background:var(--input-bg);border:1px solid var(--border);color:var(--text-primary);
+                            style="background:var(--bg3);border:1px solid var(--border);color:var(--text-1);
                                    padding:7px 12px;border-radius:8px;font-size:13px;cursor:pointer">
                             ${['pending','confirmed','preparing','ready','completed','cancelled']
                                 .map(s => `<option value="${s}" ${o.status === s ? 'selected' : ''}>${s.charAt(0).toUpperCase() + s.slice(1)}</option>`)
@@ -1054,7 +1054,7 @@ document.addEventListener('DOMContentLoaded', function () {
                         <span class="order-total">₹${o.total_amount}</span>
                     </div>
                 </div>`).join('');
-        } catch { cont.innerHTML = '<p style="color:var(--danger)">Failed to load orders.</p>'; }
+        } catch { cont.innerHTML = '<p style="color:var(--magenta)">Failed to load orders.</p>'; }
     }
 
     window.updateOrderStatus = async function (orderId, status) {
@@ -1102,7 +1102,7 @@ document.addEventListener('DOMContentLoaded', function () {
     async function loadProfile() {
         const el = document.getElementById('profileInfo');
         if (!el) return;
-        el.innerHTML = '<p style="color:var(--text-secondary)">Loading…</p>';
+        el.innerHTML = '<p style="color:var(--text-2)">Loading…</p>';
         try {
             const res  = await fetch(`${API_URL}/profile`, { headers: { Authorization: `Bearer ${token}` } });
             const data = await res.json();
@@ -1112,7 +1112,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 <div class="profile-field"><label>Email</label><span>${data.email || '—'}</span></div>
                 <div class="profile-field"><label>Phone</label><span>${data.phone || '—'}</span></div>
                 <div class="profile-field"><label>Role</label><span style="text-transform:capitalize">${data.user_type}</span></div>`;
-        } catch { el.innerHTML = '<p style="color:var(--danger)">Failed to load profile.</p>'; }
+        } catch { el.innerHTML = '<p style="color:var(--magenta)">Failed to load profile.</p>'; }
     }
 
     /* ═══════════════════════════════════════════════════
@@ -1129,7 +1129,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 <div class="stat-card"><div class="stat-number">${data.pending_orders}</div><div class="stat-label">Pending Orders</div></div>
                 <div class="stat-card"><div class="stat-number">₹${data.total_revenue}</div><div class="stat-label">Total Revenue</div></div>
                 <div class="stat-card"><div class="stat-number">${data.total_users}</div><div class="stat-label">Students</div></div>`;
-        } catch { cont.innerHTML = '<p style="color:var(--danger)">Failed to load stats.</p>'; }
+        } catch { cont.innerHTML = '<p style="color:var(--magenta)">Failed to load stats.</p>'; }
     }
 
     /* ═══════════════════════════════════════════════════
@@ -1144,13 +1144,13 @@ document.addEventListener('DOMContentLoaded', function () {
             cont.innerHTML = users.map(u => `
                 <div class="order-card" style="display:flex;justify-content:space-between;align-items:center">
                     <div>
-                        <div style="font-weight:600;color:var(--text-primary)">${u.full_name}</div>
-                        <div style="font-size:13px;color:var(--text-secondary)">${u.admission_number} · ${u.email || 'No email'}</div>
+                        <div style="font-weight:600;color:var(--text-1)">${u.full_name}</div>
+                        <div style="font-size:13px;color:var(--text-2)">${u.admission_number} · ${u.email || 'No email'}</div>
                     </div>
                     <span class="order-status status-${u.user_type === 'student' ? 'confirmed' : 'ready'}"
                           style="text-transform:capitalize">${u.user_type}</span>
                 </div>`).join('');
-        } catch { cont.innerHTML = '<p style="color:var(--danger)">Failed to load users.</p>'; }
+        } catch { cont.innerHTML = '<p style="color:var(--magenta)">Failed to load users.</p>'; }
     }
 
     /* ═══════════════════════════════════════════════════
