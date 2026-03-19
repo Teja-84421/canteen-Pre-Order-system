@@ -1005,6 +1005,16 @@ document.addEventListener('DOMContentLoaded', function () {
                         <span><i class="fas fa-calendar" style="color:var(--teal)"></i> ${dateStr}</span>
                         <span><i class="fas fa-clock" style="color:var(--teal)"></i> ${timeStr}</span>
                     </div>
+                    ${o.items?.length ? `
+                    <div class="worker-order-items">
+                        <div class="worker-order-items-label"><i class="fas fa-receipt"></i> Items Ordered</div>
+                        ${o.items.map(i => `
+                        <div class="worker-order-item-row">
+                            <span class="worker-item-name">${i.name}</span>
+                            <span class="worker-item-qty">× ${i.quantity}</span>
+                            <span class="worker-item-price">₹${(i.price * i.quantity).toFixed(2)}</span>
+                        </div>`).join('')}
+                    </div>` : ''}
                     <div style="display:flex;align-items:center;gap:10px;margin-top:10px">
                         <span style="color:var(--text-3);font-size:13px">Update Status:</span>
                         <select onchange="updateOrderStatus(${o.id}, this.value)"

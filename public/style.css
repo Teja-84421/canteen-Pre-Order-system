@@ -1243,3 +1243,59 @@ body::before {
   .payment-options { grid-template-columns:1fr; }
   .role-selector { gap:8px; }
 }
+
+/* ── Worker Order Items List ── */
+.worker-order-items {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: var(--r-sm);
+    padding: 12px 14px;
+    margin: 10px 0;
+}
+
+.worker-order-items-label {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: var(--teal);
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.worker-order-item-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 6px 0;
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+    font-size: 13px;
+}
+
+.worker-order-item-row:last-child { border-bottom: none; }
+
+.worker-item-name {
+    flex: 1;
+    color: var(--text-1);
+    font-weight: 500;
+}
+
+.worker-item-qty {
+    color: var(--text-2);
+    font-size: 12px;
+    background: var(--bg4);
+    padding: 2px 8px;
+    border-radius: 50px;
+    font-weight: 600;
+}
+
+.worker-item-price {
+    color: var(--teal);
+    font-family: 'Clash Display', sans-serif;
+    font-weight: 700;
+    font-size: 13px;
+    min-width: 70px;
+    text-align: right;
+}
