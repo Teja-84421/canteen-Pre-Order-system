@@ -972,17 +972,26 @@ document.addEventListener('DOMContentLoaded', function () {
                 return;
             }
             cont.innerHTML = orders.map(o => {
-                // Parse DB date (stored as UTC) → display in IST
-                let rawDate;
+                // order_date is stored as IST string "2026-03-19 19:45:22"
+                // Parse it directly — do NOT treat as UTC
+                let dateStr = '—', timeStr = '—';
                 if (o.order_date) {
-                    // TiDB may return "2026-03-19T08:31:53.000Z" or "2026-03-19 08:31:53"
-                    const ds = String(o.order_date).replace(' ', 'T');
-                    rawDate = new Date(ds.includes('Z') || ds.includes('+') ? ds : ds + 'Z');
-                } else {
-                    rawDate = new Date();
+                    const raw = String(o.order_date).replace('T', ' ').replace('Z', '').split('.')[0];
+                    // raw = "2026-03-19 19:45:22"
+                    const [datePart, timePart] = raw.split(' ');
+                    if (datePart) {
+                        const [y, m, d] = datePart.split('-');
+                        const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+                        dateStr = `${d} ${months[parseInt(m)-1]} ${y}`;
+                    }
+                    if (timePart) {
+                        const [hh, mm, ss] = timePart.split(':');
+                        const h = parseInt(hh);
+                        const ampm = h >= 12 ? 'PM' : 'AM';
+                        const h12  = h % 12 || 12;
+                        timeStr = `${String(h12).padStart(2,'0')}:${mm}:${ss || '00'} ${ampm} IST`;
+                    }
                 }
-                const dateStr = rawDate.toLocaleDateString('en-IN', { day:'2-digit', month:'short', year:'numeric', timeZone:'Asia/Kolkata' });
-                const timeStr = rawDate.toLocaleTimeString('en-IN', { hour:'2-digit', minute:'2-digit', second:'2-digit', hour12:true, timeZone:'Asia/Kolkata' });
                 return `
                 <div class="order-card" id="order-card-${o.id}">
                     <div class="order-header">
