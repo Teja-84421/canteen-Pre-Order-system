@@ -972,72 +972,88 @@ document.addEventListener('DOMContentLoaded', function () {
                 return;
             }
             cont.innerHTML = orders.map(o => {
-                // order_date is stored as IST string "2026-03-19 19:45:22"
-                // Parse it directly — do NOT treat as UTC
-                let dateStr = '—', timeStr = '—';
+                // Parse date — new orders stored as IST, old orders as UTC
+                let displayDate = '—';
                 if (o.order_date) {
-                    const raw = String(o.order_date).replace('T', ' ').replace('Z', '').split('.')[0];
-                    // raw = "2026-03-19 19:45:22"
-                    const [datePart, timePart] = raw.split(' ');
-                    if (datePart) {
-                        const [y, m, d] = datePart.split('-');
-                        const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-                        dateStr = `${d} ${months[parseInt(m)-1]} ${y}`;
-                    }
-                    if (timePart) {
-                        const [hh, mm, ss] = timePart.split(':');
-                        const h = parseInt(hh);
-                        const ampm = h >= 12 ? 'PM' : 'AM';
-                        const h12  = h % 12 || 12;
-                        timeStr = `${String(h12).padStart(2,'0')}:${mm}:${ss || '00'} ${ampm} IST`;
-                    }
+                    const raw = String(o.order_date).replace('T',' ').split('.')[0];
+                    // If no Z and no +, assume it's already IST (new orders)
+                    // If has Z, convert from UTC to IST
+                    const hasUTC = String(o.order_date).includes('Z') || String(o.order_date).includes('+');
+                    const d = hasUTC ? new Date(o.order_date) : new Date(String(o.order_date).replace(' ','T') + 'Z');
+                    displayDate = new Intl.DateTimeFormat('en-IN', {
+                        day:'numeric', month:'numeric', year:'numeric',
+                        hour:'numeric', minute:'2-digit', second:'2-digit',
+                        hour12:true, timeZone:'Asia/Kolkata'
+                    }).format(d);
                 }
                 return `
                 <div class="order-card" id="order-card-${o.id}">
+                    <!-- Header -->
                     <div class="order-header">
-                        <div style="display:flex;flex-wrap:wrap;align-items:center;gap:6px">
-                            <span class="order-number">#${o.order_number}</span>
-                        </div>
+                        <span class="order-number">Order #${o.order_number}</span>
                         <div style="display:flex;align-items:center;gap:8px">
                             <span class="order-status status-${o.status}">${o.status}</span>
-                            <button onclick="deleteOrder(${o.id})" class="wbtn wbtn-delete" style="padding:5px 10px;font-size:12px">
+                            <button onclick="deleteOrder(${o.id})" class="wbtn wbtn-delete" style="padding:5px 12px;font-size:12px">
                                 <i class="fas fa-trash"></i> Delete
                             </button>
                         </div>
                     </div>
-                    <div class="worker-student-info">
-                        <div class="wsi-item"><i class="fas fa-user"></i><span>${o.full_name || '—'}</span></div>
-                        <div class="wsi-item"><i class="fas fa-id-card"></i><span>${o.admission_number || '—'}</span></div>
-                        <div class="wsi-item"><i class="fas fa-phone"></i><span>${o.phone || 'No phone'}</span></div>
-                        <div class="wsi-item"><i class="fas fa-rupee-sign"></i><span>₹${o.total_amount} · ${o.payment_method}</span></div>
-                        <div class="wsi-item"><i class="fas fa-calendar-alt"></i><span>${dateStr}</span></div>
-                        <div class="wsi-item wsi-time"><i class="fas fa-clock"></i><span>${timeStr} IST</span></div>
-                    </div>
-                    ${o.items?.length ? `
-                    <div class="worker-order-items">
-                        <div class="worker-order-items-label"><i class="fas fa-utensils"></i> Items Ordered</div>
-                        ${o.items.map(i => `
-                        <div class="worker-order-item-row">
-                            <span class="worker-item-name">${i.name}</span>
-                            <span class="worker-item-qty">× ${i.quantity}</span>
-                            <span class="worker-item-price">₹${(i.price * i.quantity).toFixed(2)}</span>
-                        </div>`).join('')}
-                        <div style="display:flex;justify-content:space-between;align-items:center;padding-top:8px;border-top:1px dashed #DDD6FE;margin-top:6px">
-                            <span style="font-size:12px;color:#6D6889;font-weight:600">${o.items.length} item${o.items.length > 1 ? 's' : ''}</span>
-                            <span style="font-family:'Bricolage Grotesque',sans-serif;font-weight:800;font-size:14px;color:#5B21B6">Total: ₹${parseFloat(o.total_amount).toFixed(2)}</span>
+
+                    <!-- Student Details — exactly like old system -->
+                    <div class="wo-details-grid">
+                        <div class="wo-detail-row">
+                            <span class="wo-label">Student:</span>
+                            <span class="wo-value">${o.full_name || '—'}</span>
                         </div>
-                    </div>` : `
-                    <div style="display:flex;align-items:center;gap:8px;padding:10px 12px;background:#F9FAFB;border-radius:8px;margin:8px 0;border:1px dashed #E5E7EB">
-                        <i class="fas fa-info-circle" style="color:#9CA3AF;font-size:14px"></i>
-                        <span style="font-size:13px;color:#6B7280;font-weight:500">Total paid: <strong style="color:#1E1B4B">₹${parseFloat(o.total_amount).toFixed(2)}</strong> (item details not available for old orders)</span>
-                    </div>`}
-                    <div class="worker-status-row">
-                        <span class="worker-status-label"><i class="fas fa-sync-alt"></i> Update Status</span>
-                        <select onchange="updateOrderStatus(${o.id}, this.value)" class="worker-status-select">
-                            ${['pending','confirmed','preparing','ready','completed','cancelled']
-                                .map(s => `<option value="${s}" ${o.status === s ? 'selected' : ''}>${s.charAt(0).toUpperCase() + s.slice(1)}</option>`)
-                                .join('')}
-                        </select>
+                        <div class="wo-detail-row">
+                            <span class="wo-label">Payment:</span>
+                            <span class="wo-value">${o.payment_method} (${o.payment_status || 'pending'})</span>
+                        </div>
+                        <div class="wo-detail-row">
+                            <span class="wo-label">Admission No:</span>
+                            <span class="wo-value">${o.admission_number || '—'}</span>
+                        </div>
+                        <div class="wo-detail-row">
+                            <span class="wo-label">Date:</span>
+                            <span class="wo-value">${displayDate}</span>
+                        </div>
+                        <div class="wo-detail-row">
+                            <span class="wo-label">Phone:</span>
+                            <span class="wo-value">${o.phone || 'Not provided'}</span>
+                        </div>
+                    </div>
+
+                    <!-- Order Items — exactly like old system -->
+                    <div class="wo-items-section">
+                        <div class="wo-items-header">Order Items:</div>
+                        ${o.items?.length ? `
+                            ${o.items.map(i => `
+                            <div class="wo-item-row">
+                                <span class="wo-item-name">${i.name} <span class="wo-item-qty-badge">x${i.quantity}</span></span>
+                                <span class="wo-item-price">₹${(i.price * i.quantity).toFixed(2)}</span>
+                            </div>`).join('')}
+                            <div class="wo-items-total-row">
+                                <span class="wo-items-total-label">Items Total:</span>
+                                <span class="wo-items-total-value">₹${o.items.reduce((s,i) => s + (i.price * i.quantity), 0).toFixed(2)}</span>
+                            </div>
+                        ` : `
+                            <div class="wo-no-items">
+                                <i class="fas fa-info-circle"></i> No item details stored for this order
+                            </div>
+                        `}
+                    </div>
+
+                    <!-- Total + Update Status — like old system -->
+                    <div class="wo-footer">
+                        <span class="wo-total-label">Total: <strong class="wo-total-amount">₹${parseFloat(o.total_amount).toFixed(2)}</strong></span>
+                        <div style="display:flex;align-items:center;gap:10px">
+                            <span style="font-size:13px;font-weight:700;color:#4B5563">Update Status:</span>
+                            <select onchange="updateOrderStatus(${o.id}, this.value)" class="worker-status-select">
+                                ${['pending','confirmed','preparing','ready','completed','cancelled']
+                                    .map(s => `<option value="${s}" ${o.status === s ? 'selected' : ''}>${s.charAt(0).toUpperCase() + s.slice(1)}</option>`)
+                                    .join('')}
+                            </select>
+                        </div>
                     </div>
                 </div>`;
             }).join('');

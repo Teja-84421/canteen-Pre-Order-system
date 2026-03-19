@@ -1360,3 +1360,152 @@ body::before {
     .worker-status-row { flex-wrap: wrap; }
     .worker-status-select { width: 100%; }
 }
+
+/* ══════════════════════════════════════════
+   WORKER ORDER CARD — New layout (matches old system)
+══════════════════════════════════════════ */
+
+/* Details grid — 2 column like old screenshot */
+.wo-details-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 4px 24px;
+    margin: 12px 0 14px;
+    padding: 12px 14px;
+    background: #F8F7FF;
+    border-radius: 10px;
+    border: 1px solid #EDE9FE;
+}
+
+.wo-detail-row {
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+    font-size: 14px;
+    padding: 3px 0;
+}
+
+.wo-label {
+    color: #1E1B4B;
+    font-weight: 700;
+    white-space: nowrap;
+    min-width: 100px;
+}
+
+.wo-value {
+    color: #374151;
+    font-weight: 500;
+}
+
+/* Items section */
+.wo-items-section {
+    background: #FFFFFF;
+    border: 1.5px solid #E5E7EB;
+    border-radius: 10px;
+    padding: 12px 14px;
+    margin-bottom: 14px;
+}
+
+.wo-items-header {
+    font-size: 13px;
+    font-weight: 700;
+    color: #4B5563;
+    margin-bottom: 10px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid #F3F4F6;
+}
+
+.wo-item-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 7px 0;
+    border-bottom: 1px dashed #F3F4F6;
+    font-size: 14px;
+}
+
+.wo-item-row:last-of-type { border-bottom: none; }
+
+.wo-item-name {
+    color: #1E1B4B;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.wo-item-qty-badge {
+    background: #EDE9FE;
+    color: #7C3AED;
+    font-size: 12px;
+    font-weight: 800;
+    padding: 1px 7px;
+    border-radius: 50px;
+    border: 1px solid #DDD6FE;
+}
+
+.wo-item-price {
+    color: #1E1B4B;
+    font-weight: 700;
+    font-size: 14px;
+    min-width: 70px;
+    text-align: right;
+}
+
+.wo-items-total-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 8px 0 2px;
+    border-top: 2px solid #E5E7EB;
+    margin-top: 4px;
+}
+
+.wo-items-total-label {
+    color: #1E1B4B;
+    font-weight: 700;
+    font-size: 14px;
+}
+
+.wo-items-total-value {
+    color: #1E1B4B;
+    font-weight: 800;
+    font-size: 15px;
+}
+
+.wo-no-items {
+    color: #9CA3AF;
+    font-size: 13px;
+    padding: 6px 0;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+/* Footer: Total + Status */
+.wo-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-top: 12px;
+    border-top: 1.5px solid #F3F4F6;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.wo-total-label {
+    font-size: 15px;
+    color: #4B5563;
+    font-weight: 600;
+}
+
+.wo-total-amount {
+    color: #7C3AED;
+    font-family: 'Bricolage Grotesque', sans-serif;
+    font-size: 17px;
+    font-weight: 900;
+}
+
+@media (max-width: 640px) {
+    .wo-details-grid { grid-template-columns: 1fr; }
+    .wo-footer { flex-direction: column; align-items: flex-start; }
+}
