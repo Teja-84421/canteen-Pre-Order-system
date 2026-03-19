@@ -972,54 +972,48 @@ document.addEventListener('DOMContentLoaded', function () {
                 return;
             }
             cont.innerHTML = orders.map(o => {
-                const orderDate = new Date(o.order_date || Date.now());
-                const dateStr   = orderDate.toLocaleDateString('en-IN', { day:'2-digit', month:'short', year:'numeric' });
-                const timeStr   = orderDate.toLocaleTimeString('en-IN', { hour:'2-digit', minute:'2-digit', hour12:true });
+                // Convert to IST (UTC+5:30)
+                const rawDate = o.order_date ? new Date(o.order_date) : new Date();
+                const dateStr = rawDate.toLocaleDateString('en-IN', { day:'2-digit', month:'short', year:'numeric', timeZone:'Asia/Kolkata' });
+                const timeStr = rawDate.toLocaleTimeString('en-IN', { hour:'2-digit', minute:'2-digit', second:'2-digit', hour12:true, timeZone:'Asia/Kolkata' });
                 return `
                 <div class="order-card" id="order-card-${o.id}">
                     <div class="order-header">
-                        <div>
+                        <div style="display:flex;flex-wrap:wrap;align-items:center;gap:6px">
                             <span class="order-number">#${o.order_number}</span>
-                            <span style="color:var(--text-2);font-size:13px;margin-left:10px">
-                                <i class="fas fa-user" style="color:var(--teal);margin-right:4px"></i>${o.full_name || '—'}
-                            </span>
-                            <span style="color:var(--text-3);font-size:12px;margin-left:8px">
-                                <i class="fas fa-id-card" style="margin-right:3px"></i>${o.admission_number || '—'}
-                            </span>
                         </div>
                         <div style="display:flex;align-items:center;gap:8px">
                             <span class="order-status status-${o.status}">${o.status}</span>
-                            <button onclick="deleteOrder(${o.id})"
-                                style="background:rgba(255,71,87,0.12);border:1.5px solid rgba(255,71,87,0.35);
-                                       color:var(--magenta);border-radius:8px;padding:5px 10px;cursor:pointer;
-                                       font-size:12px;font-weight:600;transition:all 0.2s"
-                                onmouseover="this.style.background='rgba(255,71,87,0.25)'"
-                                onmouseout="this.style.background='rgba(255,71,87,0.12)'">
+                            <button onclick="deleteOrder(${o.id})" class="wbtn wbtn-delete" style="padding:5px 10px;font-size:12px">
                                 <i class="fas fa-trash"></i> Delete
                             </button>
                         </div>
                     </div>
-                    <div style="color:var(--text-2);font-size:13px;margin:8px 0;display:flex;flex-wrap:wrap;gap:12px;align-items:center">
-                        <span><i class="fas fa-rupee-sign" style="color:var(--teal)"></i> ₹${o.total_amount}</span>
-                        <span><i class="fas fa-wallet" style="color:var(--teal)"></i> ${o.payment_method}</span>
-                        <span><i class="fas fa-calendar" style="color:var(--teal)"></i> ${dateStr}</span>
-                        <span><i class="fas fa-clock" style="color:var(--teal)"></i> ${timeStr}</span>
+                    <div class="worker-student-info">
+                        <div class="wsi-item"><i class="fas fa-user"></i><span>${o.full_name || '—'}</span></div>
+                        <div class="wsi-item"><i class="fas fa-id-card"></i><span>${o.admission_number || '—'}</span></div>
+                        <div class="wsi-item"><i class="fas fa-phone"></i><span>${o.phone || 'No phone'}</span></div>
+                        <div class="wsi-item"><i class="fas fa-rupee-sign"></i><span>₹${o.total_amount} · ${o.payment_method}</span></div>
+                        <div class="wsi-item"><i class="fas fa-calendar-alt"></i><span>${dateStr}</span></div>
+                        <div class="wsi-item wsi-time"><i class="fas fa-clock"></i><span>${timeStr} IST</span></div>
                     </div>
                     ${o.items?.length ? `
                     <div class="worker-order-items">
-                        <div class="worker-order-items-label"><i class="fas fa-receipt"></i> Items Ordered</div>
+                        <div class="worker-order-items-label"><i class="fas fa-utensils"></i> Items Ordered</div>
                         ${o.items.map(i => `
                         <div class="worker-order-item-row">
                             <span class="worker-item-name">${i.name}</span>
                             <span class="worker-item-qty">× ${i.quantity}</span>
                             <span class="worker-item-price">₹${(i.price * i.quantity).toFixed(2)}</span>
                         </div>`).join('')}
-                    </div>` : ''}
-                    <div style="display:flex;align-items:center;gap:10px;margin-top:10px">
-                        <span style="color:var(--text-3);font-size:13px">Update Status:</span>
-                        <select onchange="updateOrderStatus(${o.id}, this.value)"
-                            style="background:var(--bg3);border:1px solid var(--border);color:var(--text-1);
-                                   padding:7px 12px;border-radius:8px;font-size:13px;cursor:pointer;flex:1">
+                        <div style="text-align:right;padding-top:8px;border-top:1px dashed var(--border);margin-top:4px">
+                            <span style="font-size:12px;color:var(--text-2);font-weight:600">Total: </span>
+                            <span class="worker-item-price">₹${parseFloat(o.total_amount).toFixed(2)}</span>
+                        </div>
+                    </div>` : '<p style="color:var(--text-3);font-size:13px;padding:8px 0">No items data</p>'}
+                    <div class="worker-status-row">
+                        <span class="worker-status-label"><i class="fas fa-sync-alt"></i> Update Status</span>
+                        <select onchange="updateOrderStatus(${o.id}, this.value)" class="worker-status-select">
                             ${['pending','confirmed','preparing','ready','completed','cancelled']
                                 .map(s => `<option value="${s}" ${o.status === s ? 'selected' : ''}>${s.charAt(0).toUpperCase() + s.slice(1)}</option>`)
                                 .join('')}
@@ -1027,7 +1021,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     </div>
                 </div>`;
             }).join('');
-        } catch { cont.innerHTML = '<p style="color:var(--magenta)">Failed to load orders.</p>'; }
+        } catch { cont.innerHTML = '<p style="color:var(--rose)">Failed to load orders.</p>'; }
     }
 
     /* ═══════════════════════════════════════════════════
@@ -1107,7 +1101,7 @@ document.addEventListener('DOMContentLoaded', function () {
     };
 
     /* ═══════════════════════════════════════════════════
-       PROFILE
+       PROFILE — view + inline edit
     ═══════════════════════════════════════════════════ */
     async function loadProfile() {
         const el = document.getElementById('profileInfo');
@@ -1116,14 +1110,119 @@ document.addEventListener('DOMContentLoaded', function () {
         try {
             const res  = await fetch(`${API_URL}/profile`, { headers: { Authorization: `Bearer ${token}` } });
             const data = await res.json();
-            el.innerHTML = `
-                <div class="profile-field"><label>Full Name</label><span>${data.full_name}</span></div>
-                <div class="profile-field"><label>Admission No.</label><span>${data.admission_number}</span></div>
-                <div class="profile-field"><label>Email</label><span>${data.email || '—'}</span></div>
-                <div class="profile-field"><label>Phone</label><span>${data.phone || '—'}</span></div>
-                <div class="profile-field"><label>Role</label><span style="text-transform:capitalize">${data.user_type}</span></div>`;
-        } catch { el.innerHTML = '<p style="color:var(--magenta)">Failed to load profile.</p>'; }
+            renderProfile(data);
+        } catch { el.innerHTML = '<p style="color:var(--rose)">Failed to load profile.</p>'; }
     }
+
+    function renderProfile(data) {
+        const el = document.getElementById('profileInfo');
+        if (!el) return;
+        el.innerHTML = `
+            <div class="profile-field">
+                <label>Full Name</label>
+                <span>${data.full_name}</span>
+            </div>
+            <div class="profile-field">
+                <label>Admission No.</label>
+                <span>${data.admission_number}</span>
+            </div>
+            <div class="profile-field">
+                <label>Email</label>
+                <span>${data.email || '—'}</span>
+            </div>
+            <div class="profile-field">
+                <label>Phone</label>
+                <span>${data.phone || '—'}</span>
+            </div>
+            <div class="profile-field">
+                <label>Role</label>
+                <span style="text-transform:capitalize">${data.user_type}</span>
+            </div>
+            <div class="profile-edit-btn-wrap">
+                <button onclick="openProfileEdit()" class="btn btn-primary">
+                    <i class="fas fa-pencil-alt"></i> Edit Profile
+                </button>
+            </div>
+            <!-- Edit Form (hidden by default) -->
+            <div id="profileEditForm" style="display:none;grid-column:1/-1">
+                <div class="profile-edit-section">
+                    <h3 class="profile-edit-title"><i class="fas fa-user-edit"></i> Edit Profile</h3>
+                    <div class="profile-edit-grid">
+                        <div class="input-group">
+                            <i class="fas fa-user input-icon"></i>
+                            <input type="text" id="editFullName" placeholder="Full Name *"
+                                   value="${data.full_name}" required>
+                        </div>
+                        <div class="input-group">
+                            <i class="fas fa-envelope input-icon"></i>
+                            <input type="email" id="editEmail" placeholder="Email Address"
+                                   value="${data.email || ''}">
+                        </div>
+                        <div class="input-group">
+                            <i class="fas fa-phone input-icon"></i>
+                            <input type="tel" id="editPhone" placeholder="Phone Number"
+                                   value="${data.phone || ''}">
+                        </div>
+                    </div>
+                    <div class="profile-edit-actions">
+                        <button onclick="saveProfile()" class="btn btn-primary">
+                            <i class="fas fa-save"></i> Save Changes
+                        </button>
+                        <button onclick="closeProfileEdit()" class="btn btn-outline">
+                            Cancel
+                        </button>
+                    </div>
+                </div>
+            </div>`;
+    }
+
+    window.openProfileEdit = function() {
+        const form = document.getElementById('profileEditForm');
+        const btn  = document.querySelector('.profile-edit-btn-wrap');
+        if (form) { form.style.display = 'block'; }
+        if (btn)  { btn.style.display  = 'none'; }
+        document.getElementById('editFullName')?.focus();
+    };
+
+    window.closeProfileEdit = function() {
+        const form = document.getElementById('profileEditForm');
+        const btn  = document.querySelector('.profile-edit-btn-wrap');
+        if (form) { form.style.display = 'none'; }
+        if (btn)  { btn.style.display  = 'block'; }
+    };
+
+    window.saveProfile = async function() {
+        const fullName = document.getElementById('editFullName')?.value.trim();
+        const email    = document.getElementById('editEmail')?.value.trim();
+        const phone    = document.getElementById('editPhone')?.value.trim();
+        if (!fullName) { showToast('Full name is required', 'error'); return; }
+        const authToken = sessionStorage.getItem('token') || token;
+        const btn = document.querySelector('[onclick="saveProfile()"]');
+        if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving…'; }
+        try {
+            const res  = await fetch(`${API_URL}/profile`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${authToken}` },
+                body: JSON.stringify({ full_name: fullName, email, phone })
+            });
+            const data = await res.json();
+            if (res.ok) {
+                showToast('Profile updated successfully! ✅', 'success');
+                // Update navbar name
+                const nameEl   = document.getElementById('userName');
+                const avatarEl = document.getElementById('userAvatar');
+                if (nameEl)   nameEl.textContent  = fullName;
+                if (avatarEl) avatarEl.textContent = fullName[0].toUpperCase();
+                // Reload profile view
+                loadProfile();
+            } else {
+                showToast(data.error || 'Failed to update profile', 'error');
+            }
+        } catch { showToast('Connection error', 'error'); }
+        finally {
+            if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-save"></i> Save Changes'; }
+        }
+    };
 
     /* ═══════════════════════════════════════════════════
        ADMIN STATS

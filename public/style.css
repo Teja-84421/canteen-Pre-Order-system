@@ -1175,3 +1175,129 @@ body::before {
   .payment-options { grid-template-columns:1fr; }
   .role-selector { gap:8px; }
 }
+
+/* ══════════════════════════════════════════
+   WORKER ORDER CARD — Student Info Grid
+══════════════════════════════════════════ */
+.worker-student-info {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    margin: 12px 0;
+    padding: 12px;
+    background: rgba(124,58,237,0.04);
+    border-radius: var(--r-sm);
+    border: 1px solid var(--border);
+}
+
+.wsi-item {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-2);
+}
+
+.wsi-item i {
+    color: var(--violet);
+    font-size: 12px;
+    width: 14px;
+    flex-shrink: 0;
+}
+
+.wsi-item span { color: var(--text-1); font-weight: 600; }
+
+.wsi-time span { color: var(--violet); font-weight: 700; }
+
+/* Update Status Row */
+.worker-status-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-top: 14px;
+    padding-top: 14px;
+    border-top: 1px solid var(--border);
+}
+
+.worker-status-label {
+    color: var(--text-2);
+    font-size: 13px;
+    font-weight: 700;
+    white-space: nowrap;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.worker-status-label i { color: var(--violet); }
+
+.worker-status-select {
+    flex: 1;
+    padding: 8px 14px;
+    background: var(--bg-glass);
+    border: 1.5px solid var(--border);
+    border-radius: var(--r-sm);
+    color: var(--text-1);
+    font-size: 13px;
+    font-weight: 600;
+    font-family: 'Cabinet Grotesk', sans-serif;
+    cursor: pointer;
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    backdrop-filter: blur(8px);
+}
+
+.worker-status-select:focus {
+    border-color: var(--violet);
+    box-shadow: 0 0 0 3px var(--violet-glow);
+}
+
+/* ══════════════════════════════════════════
+   PROFILE — Editable
+══════════════════════════════════════════ */
+.profile-edit-btn-wrap {
+    grid-column: 1 / -1;
+    padding-top: 8px;
+}
+
+.profile-edit-section {
+    background: var(--bg-page);
+    border: 1.5px solid var(--border-strong);
+    border-radius: var(--r-md);
+    padding: 24px;
+    margin-top: 4px;
+    animation: fadeUp 0.3s ease;
+}
+
+.profile-edit-title {
+    font-family: 'Bricolage Grotesque', sans-serif;
+    font-size: 1rem;
+    font-weight: 800;
+    color: var(--violet);
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.profile-edit-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 14px;
+    margin-bottom: 20px;
+}
+
+.profile-edit-actions {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+@media (max-width: 600px) {
+    .worker-student-info {
+        grid-template-columns: 1fr 1fr;
+    }
+    .worker-status-row { flex-wrap: wrap; }
+    .worker-status-select { width: 100%; }
+}
