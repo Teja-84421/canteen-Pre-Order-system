@@ -972,8 +972,15 @@ document.addEventListener('DOMContentLoaded', function () {
                 return;
             }
             cont.innerHTML = orders.map(o => {
-                // Convert to IST (UTC+5:30)
-                const rawDate = o.order_date ? new Date(o.order_date) : new Date();
+                // Parse DB date (stored as UTC) → display in IST
+                let rawDate;
+                if (o.order_date) {
+                    // TiDB may return "2026-03-19T08:31:53.000Z" or "2026-03-19 08:31:53"
+                    const ds = String(o.order_date).replace(' ', 'T');
+                    rawDate = new Date(ds.includes('Z') || ds.includes('+') ? ds : ds + 'Z');
+                } else {
+                    rawDate = new Date();
+                }
                 const dateStr = rawDate.toLocaleDateString('en-IN', { day:'2-digit', month:'short', year:'numeric', timeZone:'Asia/Kolkata' });
                 const timeStr = rawDate.toLocaleTimeString('en-IN', { hour:'2-digit', minute:'2-digit', second:'2-digit', hour12:true, timeZone:'Asia/Kolkata' });
                 return `
@@ -1006,11 +1013,15 @@ document.addEventListener('DOMContentLoaded', function () {
                             <span class="worker-item-qty">× ${i.quantity}</span>
                             <span class="worker-item-price">₹${(i.price * i.quantity).toFixed(2)}</span>
                         </div>`).join('')}
-                        <div style="text-align:right;padding-top:8px;border-top:1px dashed var(--border);margin-top:4px">
-                            <span style="font-size:12px;color:var(--text-2);font-weight:600">Total: </span>
-                            <span class="worker-item-price">₹${parseFloat(o.total_amount).toFixed(2)}</span>
+                        <div style="display:flex;justify-content:space-between;align-items:center;padding-top:8px;border-top:1px dashed #DDD6FE;margin-top:6px">
+                            <span style="font-size:12px;color:#6D6889;font-weight:600">${o.items.length} item${o.items.length > 1 ? 's' : ''}</span>
+                            <span style="font-family:'Bricolage Grotesque',sans-serif;font-weight:800;font-size:14px;color:#5B21B6">Total: ₹${parseFloat(o.total_amount).toFixed(2)}</span>
                         </div>
-                    </div>` : '<p style="color:var(--text-3);font-size:13px;padding:8px 0">No items data</p>'}
+                    </div>` : `
+                    <div style="display:flex;align-items:center;gap:8px;padding:10px 12px;background:#F9FAFB;border-radius:8px;margin:8px 0;border:1px dashed #E5E7EB">
+                        <i class="fas fa-info-circle" style="color:#9CA3AF;font-size:14px"></i>
+                        <span style="font-size:13px;color:#6B7280;font-weight:500">Total paid: <strong style="color:#1E1B4B">₹${parseFloat(o.total_amount).toFixed(2)}</strong> (item details not available for old orders)</span>
+                    </div>`}
                     <div class="worker-status-row">
                         <span class="worker-status-label"><i class="fas fa-sync-alt"></i> Update Status</span>
                         <select onchange="updateOrderStatus(${o.id}, this.value)" class="worker-status-select">
