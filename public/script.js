@@ -212,10 +212,16 @@ document.addEventListener('DOMContentLoaded', function () {
             if (sd) { sd.style.display = 'flex'; loadStudentDashboard(); }
         }
 
-        const nameEl   = document.getElementById('userName');
         const avatarEl = document.getElementById('userAvatar');
-        if (nameEl)   nameEl.textContent  = currentUser.fullName || '';
-        if (avatarEl) avatarEl.textContent = (currentUser.fullName || '?')[0].toUpperCase();
+        if (avatarEl) {
+            // Show first 2 letters of name e.g. "Gowtham Kumar" → "GK"
+            const parts   = (currentUser.fullName || '?').trim().split(' ');
+            const initials = parts.length >= 2
+                ? parts[0][0].toUpperCase() + parts[parts.length-1][0].toUpperCase()
+                : parts[0].substring(0,2).toUpperCase();
+            avatarEl.textContent  = initials;
+            avatarEl.title        = currentUser.fullName;
+        }
     }
 
     /* ═══ LOGIN ═══ */
@@ -287,6 +293,24 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 
     /* ═══ LOGOUT ═══ */
+    /* ── Avatar click → go to profile ── */
+    window.goToProfile = function() {
+        // Find whichever dashboard is active and click its profile link
+        const profileLink = document.querySelector('.dashboard[style*="flex"] .nav-link[data-page$="Profile"]')
+            || document.querySelector('.dashboard[style*="flex"] .nav-link[data-page*="rofile"]');
+        if (profileLink) profileLink.click();
+        else {
+            // Fallback: try direct page switch
+            const studentProfile = document.getElementById('studentProfile');
+            const workerProfile  = document.getElementById('workerProfile');
+            if (studentProfile) {
+                document.querySelectorAll('#studentDashboard .nav-link[data-page="studentProfile"]')[0]?.click();
+            } else if (workerProfile) {
+                document.querySelectorAll('#workerDashboard .nav-link[data-page="workerProfile"]')[0]?.click();
+            }
+        }
+    };
+
     document.getElementById('logoutBtn')?.addEventListener('click', () => {
         sessionStorage.removeItem('token');
         token = null; currentUser = null; cart = [];
@@ -1046,19 +1070,21 @@ document.addEventListener('DOMContentLoaded', function () {
                 return;
             }
             cont.innerHTML = orders.map(o => {
-                // TiDB is configured with timezone +05:30 so dates come back as IST already.
-                // Parse without appending Z (no UTC conversion needed).
+                // TiDB stores in UTC. Force UTC parse by appending Z, then
+                // Intl.DateTimeFormat converts to IST (Asia/Kolkata = UTC+5:30)
                 let displayDate = '—';
                 if (o.order_date) {
-                    // Replace space with T so Date() parses it correctly as LOCAL (IST) time
-                    const dateStr = String(o.order_date).replace(' ', 'T').split('.')[0];
-                    // If no timezone info → treat as IST by parsing as local and formatting directly
-                    const d = new Date(dateStr);
-                    displayDate = new Intl.DateTimeFormat('en-IN', {
-                        day: '2-digit', month: '2-digit', year: 'numeric',
-                        hour: 'numeric', minute: '2-digit', second: '2-digit',
-                        hour12: true
-                    }).format(d);
+                    const raw = String(o.order_date).replace(' ', 'T').split('.')[0];
+                    // Append Z only if no timezone info present
+                    const utcStr = (raw.endsWith('Z') || raw.includes('+')) ? raw : raw + 'Z';
+                    const d = new Date(utcStr);
+                    if (!isNaN(d)) {
+                        displayDate = new Intl.DateTimeFormat('en-IN', {
+                            day: '2-digit', month: '2-digit', year: 'numeric',
+                            hour: 'numeric', minute: '2-digit', second: '2-digit',
+                            hour12: true, timeZone: 'Asia/Kolkata'
+                        }).format(d);
+                    }
                 }
                 return `
                 <div class="order-card" id="order-card-${o.id}">
@@ -1450,10 +1476,15 @@ document.addEventListener('DOMContentLoaded', function () {
             const data = await res.json();
             if (res.ok) {
                 showToast('Profile updated successfully! ✅', 'success');
-                const nameEl   = document.getElementById('userName');
                 const avatarEl = document.getElementById('userAvatar');
-                if (nameEl)   nameEl.textContent  = fullName;
-                if (avatarEl) avatarEl.textContent = fullName[0].toUpperCase();
+                if (avatarEl) {
+                    const parts   = fullName.trim().split(' ');
+                    const initials = parts.length >= 2
+                        ? parts[0][0].toUpperCase() + parts[parts.length-1][0].toUpperCase()
+                        : parts[0].substring(0,2).toUpperCase();
+                    avatarEl.textContent = initials;
+                    avatarEl.title       = fullName;
+                }
                 loadWorkerProfile();
             } else {
                 showToast(data.error || 'Failed to update profile', 'error');
@@ -1497,10 +1528,15 @@ document.addEventListener('DOMContentLoaded', function () {
             if (res.ok) {
                 showToast('Profile updated successfully! ✅', 'success');
                 // Update navbar name
-                const nameEl   = document.getElementById('userName');
                 const avatarEl = document.getElementById('userAvatar');
-                if (nameEl)   nameEl.textContent  = fullName;
-                if (avatarEl) avatarEl.textContent = fullName[0].toUpperCase();
+                if (avatarEl) {
+                    const parts   = fullName.trim().split(' ');
+                    const initials = parts.length >= 2
+                        ? parts[0][0].toUpperCase() + parts[parts.length-1][0].toUpperCase()
+                        : parts[0].substring(0,2).toUpperCase();
+                    avatarEl.textContent = initials;
+                    avatarEl.title       = fullName;
+                }
                 // Reload profile view
                 loadProfile();
             } else {

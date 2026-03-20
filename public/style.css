@@ -1859,3 +1859,57 @@ body::before {
   background: rgba(15,14,26,0.97);
   border-top-color: rgba(124,58,237,0.2);
 }
+
+/* ── Clean Navbar (no text, just avatar + logout icon) ── */
+#userName { display: none; } /* removed from HTML but keep safe */
+
+#logoutBtn {
+    width: 38px; height: 38px;
+    padding: 0;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 15px;
+    flex-shrink: 0;
+}
+
+#logoutBtn:hover {
+    background: var(--rose-lt);
+    border-color: var(--border-rose);
+    color: var(--rose);
+}
+
+.user-avatar {
+    transition: transform 0.2s, box-shadow 0.2s;
+    font-size: 13px;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+}
+
+.user-avatar:hover {
+    transform: scale(1.08);
+    box-shadow: var(--shadow-violet), 0 0 0 3px var(--violet-glow);
+}
+
+/* Tooltip on avatar */
+.user-avatar::after {
+    content: 'My Profile';
+    position: absolute;
+    bottom: -32px; right: 0;
+    background: var(--text-1);
+    color: #fff;
+    font-size: 11px; font-weight: 600;
+    padding: 4px 10px;
+    border-radius: var(--r-xs);
+    white-space: nowrap;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s;
+    font-family: 'Cabinet Grotesk', sans-serif;
+}
+
+.user-avatar:hover::after { opacity: 1; }
+
+.nav-user {
+    position: relative;
+    display: flex; align-items: center; gap: 10px;
+}
