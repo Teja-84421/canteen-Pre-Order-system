@@ -392,7 +392,11 @@ app.put('/api/menu/:id', auth, workerOrAdmin, async (req, res) => {
 
 app.delete('/api/menu/:id', auth, workerOrAdmin, async (req, res) => {
     try {
-        await getDB().execute('DELETE FROM menu_items WHERE id = ?', [req.params.id]);
+        const pool = getDB();
+        const id   = req.params.id;
+        // Must delete order_items referencing this menu item first (FK constraint)
+        await pool.execute('DELETE FROM order_items WHERE menu_item_id = ?', [id]);
+        await pool.execute('DELETE FROM menu_items WHERE id = ?', [id]);
         res.json({ message: 'Menu item deleted' });
     } catch (err) {
         res.status(500).json({ error: err.message });
