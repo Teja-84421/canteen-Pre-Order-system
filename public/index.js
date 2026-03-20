@@ -337,7 +337,7 @@ app.get('/api/profile', auth, async (req, res) => {
 app.get('/api/menu', async (req, res) => {
     try {
         const [rows] = await getDB().execute(
-            'SELECT * FROM menu_items WHERE is_available = 1 ORDER BY category, name'
+            'SELECT * FROM menu_items ORDER BY category, name'
         );
         res.json(rows);
     } catch (err) {
