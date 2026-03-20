@@ -1273,7 +1273,7 @@ document.addEventListener('DOMContentLoaded', function () {
                         </button>
                     </div>
                 </div>
-            </div>\`;
+            </div>`;
         // Mark the currently active theme
         const currentTheme = localStorage.getItem('canteen-theme') || 'light';
         setTimeout(() => {
