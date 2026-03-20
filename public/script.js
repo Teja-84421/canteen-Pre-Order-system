@@ -972,17 +972,18 @@ document.addEventListener('DOMContentLoaded', function () {
                 return;
             }
             cont.innerHTML = orders.map(o => {
-                // Parse date — TiDB stores in UTC, convert to IST (Asia/Kolkata = UTC+5:30)
+                // TiDB is configured with timezone +05:30 so dates come back as IST already.
+                // Parse without appending Z (no UTC conversion needed).
                 let displayDate = '—';
                 if (o.order_date) {
-                    // Always append Z to treat as UTC, then format in IST
-                    const dateStr = String(o.order_date).replace(' ', 'T');
-                    const utcStr  = dateStr.endsWith('Z') || dateStr.includes('+') ? dateStr : dateStr + 'Z';
-                    const d = new Date(utcStr);
+                    // Replace space with T so Date() parses it correctly as LOCAL (IST) time
+                    const dateStr = String(o.order_date).replace(' ', 'T').split('.')[0];
+                    // If no timezone info → treat as IST by parsing as local and formatting directly
+                    const d = new Date(dateStr);
                     displayDate = new Intl.DateTimeFormat('en-IN', {
                         day: '2-digit', month: '2-digit', year: 'numeric',
                         hour: 'numeric', minute: '2-digit', second: '2-digit',
-                        hour12: true, timeZone: 'Asia/Kolkata'
+                        hour12: true
                     }).format(d);
                 }
                 return `
