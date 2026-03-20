@@ -778,21 +778,34 @@ document.addEventListener('DOMContentLoaded', function () {
 
     /* Delete menu item */
     window.deleteMenuItem = async function (itemId, containerId) {
-        if (!confirm('Delete this menu item? This cannot be undone.')) return;
+        if (!confirm('Delete this menu item permanently? This cannot be undone.')) return;
+        const authToken = sessionStorage.getItem('token') || token;
         try {
-            const authToken = sessionStorage.getItem('token') || token;
-            const res = await fetch(`${API_URL}/menu/${itemId}`, {
-                method: 'DELETE',
+            const res  = await fetch(`${API_URL}/menu/${itemId}`, {
+                method:  'DELETE',
                 headers: { Authorization: `Bearer ${authToken}` }
             });
+            const data = await res.json().catch(() => ({}));
             if (res.ok) {
-                showToast('Item deleted. Student menu updated.', 'success');
-                loadWorkerMenu(containerId);
-                // Also refresh student menu if open
-                const studentMenuPage = document.getElementById('studentMenu');
-                if (studentMenuPage && studentMenuPage.classList.contains('active')) loadStudentMenu();
-            } else { showToast('Failed to delete', 'error'); }
-        } catch { showToast('Connection error', 'error'); }
+                // Instantly remove card from DOM
+                const row = document.getElementById('wrow-' + itemId);
+                if (row) {
+                    row.style.transition = 'opacity 0.3s, transform 0.3s';
+                    row.style.opacity    = '0';
+                    row.style.transform  = 'translateX(20px)';
+                    setTimeout(() => { row.remove(); }, 300);
+                } else {
+                    loadWorkerMenu(containerId || 'workerMenuContainer');
+                }
+                loadStudentMenu();
+                showToast('✅ Item deleted successfully', 'success');
+            } else {
+                showToast(data.error || 'Failed to delete item', 'error');
+            }
+        } catch (err) {
+            console.error('deleteMenuItem error:', err);
+            showToast('Connection error — try again', 'error');
+        }
     };
 
     /* ═══════════════════════════════════════════════════
@@ -1070,21 +1083,20 @@ document.addEventListener('DOMContentLoaded', function () {
                 return;
             }
             cont.innerHTML = orders.map(o => {
-                // TiDB stores in UTC. Force UTC parse by appending Z, then
-                // Intl.DateTimeFormat converts to IST (Asia/Kolkata = UTC+5:30)
+                // DB returns UTC (no timezone offset in config).
+                // Append Z → parse as UTC → Intl converts to IST (UTC+5:30)
                 let displayDate = '—';
                 if (o.order_date) {
-                    const raw = String(o.order_date).replace(' ', 'T').split('.')[0];
-                    // Append Z only if no timezone info present
-                    const utcStr = (raw.endsWith('Z') || raw.includes('+')) ? raw : raw + 'Z';
-                    const d = new Date(utcStr);
-                    if (!isNaN(d)) {
-                        displayDate = new Intl.DateTimeFormat('en-IN', {
+                    try {
+                        const raw    = String(o.order_date).replace(' ', 'T').split('.')[0];
+                        const utcStr = (raw.endsWith('Z') || raw.includes('+')) ? raw : raw + 'Z';
+                        const d      = new Date(utcStr);
+                        displayDate  = new Intl.DateTimeFormat('en-IN', {
                             day: '2-digit', month: '2-digit', year: 'numeric',
                             hour: 'numeric', minute: '2-digit', second: '2-digit',
                             hour12: true, timeZone: 'Asia/Kolkata'
                         }).format(d);
-                    }
+                    } catch(e) { displayDate = String(o.order_date); }
                 }
                 return `
                 <div class="order-card" id="order-card-${o.id}">

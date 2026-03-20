@@ -58,8 +58,7 @@ function getDBConfig() {
         waitForConnections: true,
         connectionLimit:    5,       // keep low for serverless
         queueLimit:         0,
-        connectTimeout:     10000,
-        timezone:           '+05:30' // IST
+        connectTimeout:     10000
     };
 
     // TiDB Cloud ALWAYS needs SSL
