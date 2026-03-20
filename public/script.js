@@ -7,6 +7,46 @@ const API_URL = window.location.hostname === 'localhost' || window.location.host
     ? 'http://localhost:5002/api'
     : '/api';
 
+/* ═══════════════════════════════════════════════════
+   THEME SYSTEM
+   Saves to localStorage, applies on load
+═══════════════════════════════════════════════════ */
+(function initTheme() {
+    const saved  = localStorage.getItem('canteen-theme') || 'light';
+    applyTheme(saved);
+})();
+
+function applyTheme(theme) {
+    const root = document.documentElement;
+    if (theme === 'dark') {
+        root.setAttribute('data-theme', 'dark');
+    } else if (theme === 'system') {
+        const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        root.setAttribute('data-theme', prefersDark ? 'dark' : 'light');
+    } else {
+        root.setAttribute('data-theme', 'light');
+    }
+    localStorage.setItem('canteen-theme', theme);
+    // Update switcher UI if visible
+    document.querySelectorAll('.theme-option').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.theme === theme);
+    });
+}
+
+window.setTheme = function(theme) {
+    applyTheme(theme);
+    showToast(
+        theme === 'dark' ? '🌙 Dark theme applied' :
+        theme === 'system' ? '⚙️ Using system default' :
+        '☀️ Light theme applied'
+    );
+};
+
+// Listen for system theme changes when "system" is selected
+window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
+    if (localStorage.getItem('canteen-theme') === 'system') applyTheme('system');
+});
+
 /* ─── Global helpers ─── */
 function togglePw(id, btn) {
     const el = document.getElementById(id);
@@ -975,18 +1015,17 @@ document.addEventListener('DOMContentLoaded', function () {
                 // TiDB is configured with timezone +05:30 so dates come back as IST already.
                 // Parse without appending Z (no UTC conversion needed).
                 let displayDate = '—';
-if (o.order_date) {
-    const dateStr = String(o.order_date).replace(' ', 'T');
-    // Always treat as UTC (TiDB stores UTC), convert to IST
-    const utcStr = dateStr.endsWith('Z') || dateStr.includes('+')
-        ? dateStr : dateStr + 'Z';
-    const d = new Date(utcStr);
-    displayDate = new Intl.DateTimeFormat('en-IN', {
-        day: '2-digit', month: '2-digit', year: 'numeric',
-        hour: 'numeric', minute: '2-digit', second: '2-digit',
-        hour12: true, timeZone: 'Asia/Kolkata'
-    }).format(d);
-}
+                if (o.order_date) {
+                    // Replace space with T so Date() parses it correctly as LOCAL (IST) time
+                    const dateStr = String(o.order_date).replace(' ', 'T').split('.')[0];
+                    // If no timezone info → treat as IST by parsing as local and formatting directly
+                    const d = new Date(dateStr);
+                    displayDate = new Intl.DateTimeFormat('en-IN', {
+                        day: '2-digit', month: '2-digit', year: 'numeric',
+                        hour: 'numeric', minute: '2-digit', second: '2-digit',
+                        hour12: true
+                    }).format(d);
+                }
                 return `
                 <div class="order-card" id="order-card-${o.id}">
                     <!-- Header -->
@@ -1180,6 +1219,30 @@ if (o.order_date) {
                     <i class="fas fa-pencil-alt"></i> Edit Profile
                 </button>
             </div>
+            <!-- Theme Switcher -->
+            <div class="theme-switcher-card">
+                <div class="theme-switcher-label">
+                    <i class="fas fa-palette"></i> Appearance
+                </div>
+                <div class="theme-options">
+                    <button class="theme-option" data-theme="light" onclick="setTheme('light')">
+                        <div class="theme-preview theme-preview-light">☀️</div>
+                        <span>Light</span>
+                        <div class="theme-check"><i class="fas fa-check"></i></div>
+                    </button>
+                    <button class="theme-option" data-theme="dark" onclick="setTheme('dark')">
+                        <div class="theme-preview theme-preview-dark">🌙</div>
+                        <span>Dark</span>
+                        <div class="theme-check"><i class="fas fa-check"></i></div>
+                    </button>
+                    <button class="theme-option" data-theme="system" onclick="setTheme('system')">
+                        <div class="theme-preview theme-preview-system">⚙️</div>
+                        <span>System</span>
+                        <div class="theme-check"><i class="fas fa-check"></i></div>
+                    </button>
+                </div>
+            </div>
+
             <!-- Edit Form (hidden by default) -->
             <div id="profileEditForm" style="display:none;grid-column:1/-1">
                 <div class="profile-edit-section">
@@ -1210,7 +1273,14 @@ if (o.order_date) {
                         </button>
                     </div>
                 </div>
-            </div>`;
+            </div>\`;
+        // Mark the currently active theme
+        const currentTheme = localStorage.getItem('canteen-theme') || 'light';
+        setTimeout(() => {
+            document.querySelectorAll('.theme-option').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.theme === currentTheme);
+            });
+        }, 0);
     }
 
     window.openProfileEdit = function() {
