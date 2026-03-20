@@ -1688,3 +1688,174 @@ body::before {
     .wo-details-grid { grid-template-columns: 1fr; }
     .wo-footer { flex-direction: column; align-items: flex-start; }
 }
+
+/* ══════════════════════════════════════════
+   MOBILE ONLY CHANGES (max-width: 768px)
+   1. Login page — aurora background
+   2. Bottom navigation bar
+   3. Abbreviated name in navbar
+══════════════════════════════════════════ */
+
+/* ── 1. Mobile Login — show aurora background ── */
+@media (max-width: 900px) {
+  .auth-form-panel {
+    background: linear-gradient(150deg, #EDE9FE 0%, #FDF2F8 40%, #F0FDF4 70%, #FEF3C7 100%);
+    position: relative;
+  }
+
+  /* Floating orbs on mobile login background */
+  .auth-form-panel::after {
+    content: '';
+    position: fixed;
+    width: 300px; height: 300px;
+    background: radial-gradient(ellipse, rgba(124,58,237,0.15) 0%, transparent 70%);
+    border-radius: 50%;
+    top: -80px; right: -80px;
+    pointer-events: none;
+    z-index: 0;
+    animation: blobPulse 8s ease-in-out infinite;
+  }
+
+  .auth-form-inner {
+    position: relative;
+    z-index: 1;
+    background: rgba(255,255,255,0.75);
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(124,58,237,0.15);
+    border-radius: var(--r-xl);
+    padding: 32px 28px;
+    box-shadow: 0 8px 40px rgba(124,58,237,0.12);
+  }
+
+  /* Brand mini header on mobile */
+  .auth-form-panel .mobile-brand {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 28px;
+    justify-content: center;
+  }
+
+  .auth-form-panel .mobile-brand-icon {
+    width: 48px; height: 48px;
+    background: linear-gradient(135deg, var(--violet), var(--rose));
+    border-radius: 14px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.2rem; color: #fff;
+    box-shadow: var(--shadow-violet);
+  }
+
+  .auth-form-panel .mobile-brand-name {
+    font-family: 'Bricolage Grotesque', sans-serif;
+    font-size: 1.4rem; font-weight: 800;
+    color: var(--text-1); letter-spacing: -0.3px;
+  }
+
+  .auth-form-panel .mobile-brand-name b { color: var(--violet); }
+}
+
+/* ── 2. Bottom Navigation Bar (mobile only) ── */
+@media (max-width: 768px) {
+  /* Hide top sidebar */
+  .dashboard .sidebar {
+    display: none;
+  }
+
+  /* Show bottom nav */
+  .mobile-bottom-nav {
+    display: flex !important;
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    background: rgba(255,255,255,0.95);
+    backdrop-filter: blur(20px);
+    border-top: 1px solid var(--border);
+    box-shadow: 0 -4px 24px rgba(124,58,237,0.1);
+    z-index: 200;
+    padding: 8px 4px;
+    padding-bottom: calc(8px + env(safe-area-inset-bottom));
+  }
+
+  .mobile-bottom-nav a {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    padding: 6px 4px;
+    color: var(--text-3);
+    text-decoration: none;
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border-radius: var(--r-sm);
+    transition: all 0.2s;
+    cursor: pointer;
+    background: none; border: none;
+    font-family: 'Cabinet Grotesk', sans-serif;
+  }
+
+  .mobile-bottom-nav a i {
+    font-size: 18px;
+    transition: transform 0.2s;
+  }
+
+  .mobile-bottom-nav a.active {
+    color: var(--violet);
+  }
+
+  .mobile-bottom-nav a.active i {
+    transform: scale(1.15);
+  }
+
+  .mobile-bottom-nav a.active .mob-nav-dot {
+    display: block;
+  }
+
+  .mob-nav-dot {
+    display: none;
+    width: 4px; height: 4px;
+    background: var(--violet);
+    border-radius: 50%;
+    margin-top: 2px;
+  }
+
+  /* Add padding to main content so it doesn't hide behind bottom nav */
+  .main-content {
+    padding-bottom: calc(80px + env(safe-area-inset-bottom)) !important;
+  }
+
+  /* Navbar — shrink on mobile */
+  .navbar {
+    padding: 0 16px;
+  }
+
+  /* ── 3. Abbreviated name in navbar ── */
+  #userName {
+    display: none; /* hide full name */
+  }
+
+  .user-avatar {
+    width: 36px; height: 36px;
+    font-size: 14px;
+  }
+
+  /* Hide logout text, show just icon */
+  #logoutBtn span { display: none; }
+  #logoutBtn i { margin: 0; }
+  #logoutBtn {
+    padding: 7px 10px;
+    min-width: unset;
+  }
+}
+
+/* Hide bottom nav on desktop */
+.mobile-bottom-nav {
+  display: none;
+}
+
+/* Dark theme bottom nav */
+[data-theme="dark"] .mobile-bottom-nav {
+  background: rgba(15,14,26,0.97);
+  border-top-color: rgba(124,58,237,0.2);
+}

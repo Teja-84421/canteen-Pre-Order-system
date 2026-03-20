@@ -485,8 +485,41 @@ document.addEventListener('DOMContentLoaded', function () {
                 link.classList.add('active');
                 document.querySelectorAll(`${dashboardSelector} .page-content`).forEach(p => p.classList.remove('active'));
                 document.getElementById(pageId)?.classList.add('active');
+                syncBottomNav(dashboardSelector, pageId);
                 onSwitch(pageId);
             });
+        });
+
+        // Wire bottom nav buttons too
+        const bottomNavId = dashboardSelector === '#studentDashboard'
+            ? 'studentBottomNav' : 'workerBottomNav';
+        const bottomNav = document.getElementById(bottomNavId);
+        if (bottomNav) {
+            bottomNav.querySelectorAll('a[data-page]').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const pageId = btn.getAttribute('data-page');
+                    // Trigger the corresponding sidebar link
+                    const sideLink = document.querySelector(`${dashboardSelector} .nav-link[data-page="${pageId}"]`);
+                    if (sideLink) sideLink.click();
+                    else {
+                        // Fallback: switch page directly
+                        document.querySelectorAll(`${dashboardSelector} .page-content`).forEach(p => p.classList.remove('active'));
+                        document.getElementById(pageId)?.classList.add('active');
+                        syncBottomNav(dashboardSelector, pageId);
+                        onSwitch(pageId);
+                    }
+                });
+            });
+        }
+    }
+
+    function syncBottomNav(dashboardSelector, activePageId) {
+        const bottomNavId = dashboardSelector === '#studentDashboard'
+            ? 'studentBottomNav' : 'workerBottomNav';
+        const bottomNav = document.getElementById(bottomNavId);
+        if (!bottomNav) return;
+        bottomNav.querySelectorAll('a[data-page]').forEach(btn => {
+            btn.classList.toggle('active', btn.getAttribute('data-page') === activePageId);
         });
     }
 

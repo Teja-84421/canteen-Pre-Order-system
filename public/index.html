@@ -6,7 +6,6 @@
     <title>Canteen Pre-Order System</title>
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <meta name="google-site-verification" content="yTitDRXz2T-PrZ-kLJHbK53r48P2tFQp6VrLuyLkRwM" />
     <!-- Fonts via Fontshare @import in CSS -->
 </head>
 <body>
@@ -32,6 +31,11 @@
             </div>
             <div class="auth-form-panel">
                 <div class="auth-form-inner">
+                    <!-- Mobile brand header (hidden on desktop) -->
+                    <div class="mobile-brand">
+                        <div class="mobile-brand-icon"><i class="fas fa-utensils"></i></div>
+                        <div class="mobile-brand-name">Canteen<b>Pro</b></div>
+                    </div>
                     <h2 class="form-title">Welcome Back</h2>
                     <p class="form-subtitle">Sign in to your account</p>
                     <div class="role-selector">
@@ -223,6 +227,24 @@
                     <li><a href="#" class="nav-link" data-page="studentProfile"><i class="fas fa-user"></i><span>Profile</span></a></li>
                 </ul>
             </div>
+            <!-- Mobile Bottom Navigation -->
+            <nav class="mobile-bottom-nav" id="studentBottomNav">
+                <a data-page="studentMenu" class="active">
+                    <i class="fas fa-home"></i>
+                    <span>Menu</span>
+                    <div class="mob-nav-dot"></div>
+                </a>
+                <a data-page="studentOrders">
+                    <i class="fas fa-receipt"></i>
+                    <span>Orders</span>
+                    <div class="mob-nav-dot"></div>
+                </a>
+                <a data-page="studentProfile">
+                    <i class="fas fa-user"></i>
+                    <span>Profile</span>
+                    <div class="mob-nav-dot"></div>
+                </a>
+            </nav>
             <div class="main-content">
                 <div id="studentMenu" class="page-content active">
                     <div class="content-header"><h2><i class="fas fa-utensils"></i> Today's Menu</h2></div>
@@ -256,6 +278,24 @@
                     <li><a href="#" class="nav-link" data-page="workerProfile"><i class="fas fa-user"></i><span>Profile</span></a></li>
                 </ul>
             </div>
+            <!-- Mobile Bottom Navigation -->
+            <nav class="mobile-bottom-nav" id="workerBottomNav">
+                <a data-page="workerOrders" class="active">
+                    <i class="fas fa-clipboard-list"></i>
+                    <span>Orders</span>
+                    <div class="mob-nav-dot"></div>
+                </a>
+                <a data-page="workerMenu">
+                    <i class="fas fa-utensils"></i>
+                    <span>Menu</span>
+                    <div class="mob-nav-dot"></div>
+                </a>
+                <a data-page="workerProfile">
+                    <i class="fas fa-user"></i>
+                    <span>Profile</span>
+                    <div class="mob-nav-dot"></div>
+                </a>
+            </nav>
             <div class="main-content">
                 <div id="workerOrders" class="page-content active">
                     <div class="content-header"><h2><i class="fas fa-clipboard-list"></i> All Orders</h2></div>
