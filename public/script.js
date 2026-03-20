@@ -972,18 +972,17 @@ document.addEventListener('DOMContentLoaded', function () {
                 return;
             }
             cont.innerHTML = orders.map(o => {
-                // Parse date — new orders stored as IST, old orders as UTC
+                // Parse date — TiDB stores in UTC, convert to IST (Asia/Kolkata = UTC+5:30)
                 let displayDate = '—';
                 if (o.order_date) {
-                    const raw = String(o.order_date).replace('T',' ').split('.')[0];
-                    // If no Z and no +, assume it's already IST (new orders)
-                    // If has Z, convert from UTC to IST
-                    const hasUTC = String(o.order_date).includes('Z') || String(o.order_date).includes('+');
-                    const d = hasUTC ? new Date(o.order_date) : new Date(String(o.order_date).replace(' ','T') + 'Z');
+                    // Always append Z to treat as UTC, then format in IST
+                    const dateStr = String(o.order_date).replace(' ', 'T');
+                    const utcStr  = dateStr.endsWith('Z') || dateStr.includes('+') ? dateStr : dateStr + 'Z';
+                    const d = new Date(utcStr);
                     displayDate = new Intl.DateTimeFormat('en-IN', {
-                        day:'numeric', month:'numeric', year:'numeric',
-                        hour:'numeric', minute:'2-digit', second:'2-digit',
-                        hour12:true, timeZone:'Asia/Kolkata'
+                        day: '2-digit', month: '2-digit', year: 'numeric',
+                        hour: 'numeric', minute: '2-digit', second: '2-digit',
+                        hour12: true, timeZone: 'Asia/Kolkata'
                     }).format(d);
                 }
                 return `
