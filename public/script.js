@@ -512,8 +512,9 @@ document.addEventListener('DOMContentLoaded', function () {
     /* ─── Worker ─── */
     function setupWorkerNavigation() {
         setupNavigation('#workerDashboard', (pageId) => {
-            if (pageId === 'workerOrders') loadWorkerOrders();
-            if (pageId === 'workerMenu')   loadWorkerMenu();
+            if (pageId === 'workerOrders')  loadWorkerOrders();
+            if (pageId === 'workerMenu')    loadWorkerMenu();
+            if (pageId === 'workerProfile') loadWorkerProfile();
         });
         // Auto-load orders when worker first lands
         document.querySelector('#workerDashboard .nav-link')?.click();
@@ -1282,6 +1283,153 @@ document.addEventListener('DOMContentLoaded', function () {
             });
         }, 0);
     }
+
+    /* ── Worker Profile (same as student profile) ── */
+    async function loadWorkerProfile() {
+        const el = document.getElementById('workerProfileInfo');
+        if (!el) return;
+        el.innerHTML = '<p style="color:var(--text-2)">Loading…</p>';
+        try {
+            const authToken = sessionStorage.getItem('token') || token;
+            const res  = await fetch(`${API_URL}/profile`, { headers: { Authorization: `Bearer ${authToken}` } });
+            const data = await res.json();
+            renderWorkerProfile(data);
+        } catch { el.innerHTML = '<p style="color:var(--rose)">Failed to load profile.</p>'; }
+    }
+
+    function renderWorkerProfile(data) {
+        const el = document.getElementById('workerProfileInfo');
+        if (!el) return;
+        el.innerHTML = `
+            <div class="profile-field">
+                <label>Full Name</label>
+                <span>${data.full_name}</span>
+            </div>
+            <div class="profile-field">
+                <label>Admission No.</label>
+                <span>${data.admission_number}</span>
+            </div>
+            <div class="profile-field">
+                <label>Email</label>
+                <span>${data.email || '—'}</span>
+            </div>
+            <div class="profile-field">
+                <label>Phone</label>
+                <span>${data.phone || '—'}</span>
+            </div>
+            <div class="profile-field">
+                <label>Role</label>
+                <span style="text-transform:capitalize">${data.user_type}</span>
+            </div>
+            <div class="profile-edit-btn-wrap" id="workerEditBtnWrap">
+                <button onclick="openWorkerProfileEdit()" class="btn btn-primary">
+                    <i class="fas fa-pencil-alt"></i> Edit Profile
+                </button>
+            </div>
+            <!-- Edit Form -->
+            <div id="workerProfileEditForm" style="display:none;grid-column:1/-1">
+                <div class="profile-edit-section">
+                    <h3 class="profile-edit-title"><i class="fas fa-user-edit"></i> Edit Profile</h3>
+                    <div class="profile-edit-grid">
+                        <div class="input-group">
+                            <i class="fas fa-user input-icon"></i>
+                            <input type="text" id="workerEditFullName" placeholder="Full Name *"
+                                   value="${data.full_name}" required>
+                        </div>
+                        <div class="input-group">
+                            <i class="fas fa-envelope input-icon"></i>
+                            <input type="email" id="workerEditEmail" placeholder="Email Address"
+                                   value="${data.email || ''}">
+                        </div>
+                        <div class="input-group">
+                            <i class="fas fa-phone input-icon"></i>
+                            <input type="tel" id="workerEditPhone" placeholder="Phone Number"
+                                   value="${data.phone || ''}">
+                        </div>
+                    </div>
+                    <div class="profile-edit-actions">
+                        <button onclick="saveWorkerProfile()" class="btn btn-primary">
+                            <i class="fas fa-save"></i> Save Changes
+                        </button>
+                        <button onclick="closeWorkerProfileEdit()" class="btn btn-outline">
+                            Cancel
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <!-- Theme Switcher -->
+            <div class="theme-switcher-card">
+                <div class="theme-switcher-label">
+                    <i class="fas fa-palette"></i> Appearance
+                </div>
+                <div class="theme-options">
+                    <button class="theme-option" data-theme="light" onclick="setTheme('light')">
+                        <div class="theme-preview theme-preview-light">☀️</div>
+                        <span>Light</span>
+                        <div class="theme-check"><i class="fas fa-check"></i></div>
+                    </button>
+                    <button class="theme-option" data-theme="dark" onclick="setTheme('dark')">
+                        <div class="theme-preview theme-preview-dark">🌙</div>
+                        <span>Dark</span>
+                        <div class="theme-check"><i class="fas fa-check"></i></div>
+                    </button>
+                    <button class="theme-option" data-theme="system" onclick="setTheme('system')">
+                        <div class="theme-preview theme-preview-system">⚙️</div>
+                        <span>System</span>
+                        <div class="theme-check"><i class="fas fa-check"></i></div>
+                    </button>
+                </div>
+            </div>`;
+        // Mark active theme
+        const currentTheme = localStorage.getItem('canteen-theme') || 'light';
+        setTimeout(() => {
+            document.querySelectorAll('.theme-option').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.theme === currentTheme);
+            });
+        }, 0);
+    }
+
+    window.openWorkerProfileEdit = function() {
+        document.getElementById('workerProfileEditForm').style.display = 'block';
+        document.getElementById('workerEditBtnWrap').style.display = 'none';
+        document.getElementById('workerEditFullName')?.focus();
+    };
+
+    window.closeWorkerProfileEdit = function() {
+        document.getElementById('workerProfileEditForm').style.display = 'none';
+        document.getElementById('workerEditBtnWrap').style.display = 'block';
+    };
+
+    window.saveWorkerProfile = async function() {
+        const fullName = document.getElementById('workerEditFullName')?.value.trim();
+        const email    = document.getElementById('workerEditEmail')?.value.trim();
+        const phone    = document.getElementById('workerEditPhone')?.value.trim();
+        if (!fullName) { showToast('Full name is required', 'error'); return; }
+        const authToken = sessionStorage.getItem('token') || token;
+        const btn = document.querySelector('[onclick="saveWorkerProfile()"]');
+        if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving…'; }
+        try {
+            const res  = await fetch(`${API_URL}/profile`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${authToken}` },
+                body: JSON.stringify({ full_name: fullName, email, phone })
+            });
+            const data = await res.json();
+            if (res.ok) {
+                showToast('Profile updated successfully! ✅', 'success');
+                const nameEl   = document.getElementById('userName');
+                const avatarEl = document.getElementById('userAvatar');
+                if (nameEl)   nameEl.textContent  = fullName;
+                if (avatarEl) avatarEl.textContent = fullName[0].toUpperCase();
+                loadWorkerProfile();
+            } else {
+                showToast(data.error || 'Failed to update profile', 'error');
+            }
+        } catch { showToast('Connection error', 'error'); }
+        finally {
+            if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-save"></i> Save Changes'; }
+        }
+    };
 
     window.openProfileEdit = function() {
         const form = document.getElementById('profileEditForm');
