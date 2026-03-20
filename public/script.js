@@ -848,8 +848,8 @@ document.addEventListener('DOMContentLoaded', function () {
        Online → place order (pending) → open UPI app
               → when user returns to tab → mark paid → show success
     ═══════════════════════════════════════════════════ */
-    const UPI_ID   = 'sodemunithanmayteja-1@oksbi'; // ← your PhonePe UPI ID
-    const UPI_NAME = 'Sode Muni Thanmay Te';
+    const UPI_ID   = '9618919586-2@axl'; // ← your PhonePe UPI ID
+    const UPI_NAME = 'Sode Muni Thanmay Teja';
 
     const checkoutModal   = document.getElementById('checkoutModal');
     const confirmOrderBtn = document.getElementById('confirmOrderBtn');
