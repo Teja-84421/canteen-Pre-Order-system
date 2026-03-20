@@ -332,33 +332,12 @@ app.get('/api/profile', auth, async (req, res) => {
 });
 
 /* ═══════════════════════════════════════════════
-   PROFILE — UPDATE
-═══════════════════════════════════════════════ */
-app.put('/api/profile', auth, async (req, res) => {
-    const { full_name, email, phone } = req.body;
-    if (!full_name || !full_name.trim())
-        return res.status(400).json({ error: 'Full name is required' });
-    try {
-        await getDB().execute(
-            'UPDATE users SET full_name=?, email=?, phone=? WHERE id=?',
-            [full_name.trim(), email?.trim() || null, phone?.trim() || null, req.user.id]
-        );
-        res.json({ message: 'Profile updated successfully' });
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
-});
-
-/* ═══════════════════════════════════════════════
    MENU
 ═══════════════════════════════════════════════ */
-/* GET /api/menu → returns ALL items always.
-   Frontend shows unavailable items with "Not Available" overlay (like Swiggy).
-   Items are never hidden — only overlaid. */
 app.get('/api/menu', async (req, res) => {
     try {
         const [rows] = await getDB().execute(
-            'SELECT * FROM menu_items ORDER BY category, name'
+            'SELECT * FROM menu_items WHERE is_available = 1 ORDER BY category, name'
         );
         res.json(rows);
     } catch (err) {
@@ -381,59 +360,16 @@ app.post('/api/menu', auth, workerOrAdmin, async (req, res) => {
     }
 });
 
-/* PUT /api/menu/:id
-   Body with name+price  → full edit
-   Body with only is_available → availability toggle only */
 app.put('/api/menu/:id', auth, workerOrAdmin, async (req, res) => {
-    const id   = parseInt(req.params.id);
-    const body = req.body;
+    const { name, description, price, category, image_url, is_available } = req.body;
     try {
-        if (body.name !== undefined) {
-            // ── Full item edit ──
-            await getDB().execute(
-                'UPDATE menu_items SET name=?,description=?,price=?,category=?,image_url=?,is_available=? WHERE id=?',
-                [
-                    String(body.name),
-                    body.description || null,
-                    Number(body.price),
-                    String(body.category),
-                    body.image_url || null,
-                    body.is_available !== undefined ? Number(body.is_available) : 1,
-                    id
-                ]
-            );
-            return res.json({ message: 'Menu item updated' });
-        }
-
-        // ── Availability toggle only ──
-        if (body.is_available === undefined)
-            return res.status(400).json({ error: 'Nothing to update' });
-
         await getDB().execute(
-            'UPDATE menu_items SET is_available=? WHERE id=?',
-            [Number(body.is_available), id]
+            `UPDATE menu_items SET name=?, description=?, price=?, category=?, image_url=?, is_available=?
+             WHERE id=?`,
+            [name, description || null, price, category, image_url || null, is_available ?? 1, req.params.id]
         );
-        return res.json({ message: 'Availability updated' });
-
+        res.json({ message: 'Menu item updated' });
     } catch (err) {
-        console.error('PUT /api/menu/:id error:', err.message);
-        res.status(500).json({ error: err.message });
-    }
-});
-
-/* PATCH /api/menu/:id — availability toggle ONLY
-   Separate from PUT to avoid any parameter conflicts */
-app.patch('/api/menu/:id', auth, workerOrAdmin, async (req, res) => {
-    try {
-        const id          = parseInt(req.params.id);
-        const is_available = Number(req.body.is_available);
-        await getDB().execute(
-            'UPDATE menu_items SET is_available=? WHERE id=?',
-            [is_available, id]
-        );
-        res.json({ message: 'Availability updated', is_available });
-    } catch (err) {
-        console.error('PATCH /api/menu/:id error:', err.message);
         res.status(500).json({ error: err.message });
     }
 });
@@ -456,19 +392,14 @@ app.post('/api/orders', auth, async (req, res) => {
 
     const orderNumber   = 'ORD' + Date.now();
     const paymentStatus = payment_method === 'online' ? 'paid' : 'pending';
-    // Store order time as IST (UTC+5:30)
-    const now = new Date();
-    const istOffset = 5.5 * 60 * 60 * 1000;
-    const istDate = new Date(now.getTime() + istOffset);
-    const istString = istDate.toISOString().replace('T', ' ').replace('Z', '');
 
     try {
         const pool = getDB();
         const [result] = await pool.execute(
             `INSERT INTO orders
-             (order_number, user_id, admission_number, total_amount, status, payment_method, payment_status, order_date)
-             VALUES (?, ?, ?, ?, 'pending', ?, ?, ?)`,
-            [orderNumber, req.user.id, req.user.admission_number, total_amount, payment_method, paymentStatus, istString]
+             (order_number, user_id, admission_number, total_amount, status, payment_method, payment_status)
+             VALUES (?, ?, ?, ?, 'pending', ?, ?)`,
+            [orderNumber, req.user.id, req.user.admission_number, total_amount, payment_method, paymentStatus]
         );
         const orderId = result.insertId;
         for (const item of items) {
@@ -477,7 +408,7 @@ app.post('/api/orders', auth, async (req, res) => {
                 [orderId, item.id, item.quantity, item.price]
             );
         }
-        res.status(201).json({ message: 'Order placed successfully', order_number: orderNumber, order_id: orderId });
+        res.status(201).json({ message: 'Order placed successfully', order_number: orderNumber });
     } catch (err) {
         console.error('Order error:', err.message);
         res.status(500).json({ error: 'Failed to place order. Please try again.' });
@@ -509,16 +440,6 @@ app.get('/api/orders/my-orders', auth, async (req, res) => {
     }
 });
 
-/* DEBUG — check order_items for any order */
-app.get('/api/debug/order-items/:orderId', auth, workerOrAdmin, async (req, res) => {
-    try {
-        const [rows] = await getDB().execute(
-            'SELECT * FROM order_items WHERE order_id = ?', [req.params.orderId]
-        );
-        res.json({ order_id: req.params.orderId, item_count: rows.length, items: rows });
-    } catch(err) { res.status(500).json({ error: err.message }); }
-});
-
 /* ═══════════════════════════════════════════════
    ORDERS — ALL (worker/admin)
 ═══════════════════════════════════════════════ */
@@ -526,7 +447,9 @@ app.get('/api/orders', auth, workerOrAdmin, async (req, res) => {
     try {
         const pool   = getDB();
         const status = req.query.status;
-        let query  = `SELECT o.*, u.full_name, u.phone FROM orders o JOIN users u ON o.user_id = u.id`;
+        let query  = `SELECT o.*, u.full_name, u.phone
+                      FROM orders o
+                      JOIN users u ON o.user_id = u.id`;
         let params = [];
         if (status && status !== 'all') {
             query += ' WHERE o.status = ?';
@@ -535,50 +458,19 @@ app.get('/api/orders', auth, workerOrAdmin, async (req, res) => {
         query += ' ORDER BY o.id DESC';
         const [orders] = await pool.execute(query, params);
 
-        // Fetch ordered items — cast id to int to avoid BigInt mismatch in TiDB
+        // Fetch ordered items for every order
         for (const order of orders) {
-            try {
-                const orderId = parseInt(String(order.id), 10);
-                const [items] = await pool.execute(
-                    `SELECT oi.quantity, oi.price,
-                            COALESCE(m.name, 'Deleted item') AS name
-                     FROM order_items oi
-                     LEFT JOIN menu_items m ON oi.menu_item_id = m.id
-                     WHERE oi.order_id = ?`,
-                    [orderId]
-                );
-                order.items = items;
-                console.log(`Order ${orderId} items: ${items.length}`);
-            } catch(itemErr) {
-                console.error(`Items fetch error for order ${order.id}:`, itemErr.message);
-                order.items = [];
-            }
+            const [items] = await pool.execute(
+                `SELECT oi.quantity, oi.price, m.name
+                 FROM order_items oi
+                 JOIN menu_items m ON oi.menu_item_id = m.id
+                 WHERE oi.order_id = ?`,
+                [order.id]
+            );
+            order.items = items;
         }
 
         res.json(orders);
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
-});
-
-/* ═══════════════════════════════════════════════
-   ORDERS — UPDATE PAYMENT STATUS (student, after UPI return)
-═══════════════════════════════════════════════ */
-app.put('/api/orders/:id/payment', auth, async (req, res) => {
-    const { payment_status } = req.body;
-    if (!['pending', 'paid'].includes(payment_status))
-        return res.status(400).json({ error: 'Invalid payment status' });
-    try {
-        // Only the student who placed the order can update payment
-        // If paid → also move order status to 'confirmed'
-        await getDB().execute(
-            `UPDATE orders
-             SET payment_status = ?,
-                 status = CASE WHEN ? = 'paid' THEN 'confirmed' ELSE status END
-             WHERE id = ? AND user_id = ?`,
-            [payment_status, payment_status, req.params.id, req.user.id]
-        );
-        res.json({ message: 'Payment updated' });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
@@ -594,17 +486,6 @@ app.put('/api/orders/:id/status', auth, workerOrAdmin, async (req, res) => {
     try {
         await getDB().execute('UPDATE orders SET status = ? WHERE id = ?', [status, req.params.id]);
         res.json({ message: 'Status updated to: ' + status });
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
-});
-
-/* DELETE order (worker/admin only) */
-app.delete('/api/orders/:id', auth, workerOrAdmin, async (req, res) => {
-    try {
-        await getDB().execute('DELETE FROM order_items WHERE order_id = ?', [req.params.id]);
-        await getDB().execute('DELETE FROM orders WHERE id = ?', [req.params.id]);
-        res.json({ message: 'Order deleted' });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
