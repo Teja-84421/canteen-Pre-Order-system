@@ -1506,7 +1506,10 @@ document.addEventListener('DOMContentLoaded', function () {
             } else {
                 showToast(data.error || 'Failed to update profile', 'error');
             }
-        } catch { showToast('Connection error', 'error'); }
+        } catch (err) {
+            console.error('saveProfile error:', err);
+            showToast('Connection error: ' + (err.message || 'unknown'), 'error');
+        }
         finally {
             if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-save"></i> Save Changes'; }
         }

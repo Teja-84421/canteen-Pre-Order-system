@@ -332,12 +332,29 @@ app.get('/api/profile', auth, async (req, res) => {
 });
 
 /* ═══════════════════════════════════════════════
+   PROFILE — UPDATE
+═══════════════════════════════════════════════ */
+app.put('/api/profile', auth, async (req, res) => {
+    const { full_name, email, phone } = req.body;
+    if (!full_name?.trim()) return res.status(400).json({ error: 'Full name is required' });
+    try {
+        await getDB().execute(
+            'UPDATE users SET full_name = ?, email = ?, phone = ? WHERE id = ?',
+            [full_name.trim(), email?.trim() || null, phone?.trim() || null, req.user.id]
+        );
+        res.json({ message: 'Profile updated successfully' });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+/* ═══════════════════════════════════════════════
    MENU
 ═══════════════════════════════════════════════ */
 app.get('/api/menu', async (req, res) => {
     try {
         const [rows] = await getDB().execute(
-            'SELECT * FROM menu_items WHERE is_available = 1 ORDER BY category, name'
+            'SELECT * FROM menu_items ORDER BY category, name'
         );
         res.json(rows);
     } catch (err) {
