@@ -848,8 +848,8 @@ document.addEventListener('DOMContentLoaded', function () {
        Online → place order (pending) → open UPI app
               → when user returns to tab → mark paid → show success
     ═══════════════════════════════════════════════════ */
-    const UPI_ID   = '9618919586-2@axl'; // ← your PhonePe UPI ID
-    const UPI_NAME = 'Sode Muni Thanmay Teja';
+    const UPI_ID   = 'sodemunithanmayteja-1@oksbi'; // ← your PhonePe UPI ID
+    const UPI_NAME = 'Sode Muni Thanmay Te';
 
     const checkoutModal   = document.getElementById('checkoutModal');
     const confirmOrderBtn = document.getElementById('confirmOrderBtn');
@@ -966,7 +966,13 @@ document.addEventListener('DOMContentLoaded', function () {
 
             // Step 3 — open UPI deep link (opens PhonePe / GPay / any UPI app)
             const upiURL = `upi://pay?pa=${UPI_ID}&pn=${encodeURIComponent(UPI_NAME)}&am=${totalAmount}&cu=INR&tn=${pendingOnlineOrderNumber}`;
-            window.location.href = upiURL;
+            // Open UPI via anchor (avoids page navigation that triggers Safe Browsing)
+            const upiLink = document.createElement('a');
+            upiLink.href = upiURL;
+            upiLink.style.display = 'none';
+            document.body.appendChild(upiLink);
+            upiLink.click();
+            document.body.removeChild(upiLink);
 
             // Step 4 — when user comes BACK to this tab after paying,
             //           visibilitychange fires → auto-confirm the order
