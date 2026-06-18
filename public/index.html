@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JNTUACEA CanteenPro</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <meta name="google-site-verification" content="yTitDRXz2T-PrZ-kLJHbK53r48P2tFQp6VrLuyLkRwM" />
+    <!-- Fonts via Fontshare @import in CSS -->
+</head>
+<body>
+
+    <!-- LOGIN PAGE -->
+    <div id="loginPage" class="page active">
+        <div class="auth-layout">
+            <div class="auth-brand-panel">
+                <div class="orb1"></div>
+                <div class="orb2"></div>
+                <div class="orb3"></div>
+                <div class="brand-content">
+                    <div class="brand-logo"><i class="fas fa-utensils"></i></div>
+                    <h1 class="brand-title">JNTUACEA<br><span>CanteenPro</span></h1>
+                    <p class="brand-tagline">Skip the queue. Order ahead. Eat fresh.</p>
+                    <div class="brand-features">
+                        <div class="feature-item"><i class="fas fa-bolt"></i> Fast Ordering</div>
+                        <div class="feature-item"><i class="fas fa-clock"></i> Pre-Schedule Meals</div>
+                        <div class="feature-item"><i class="fas fa-mobile-alt"></i> Track in Real-time</div>
+                    </div>
+                </div>
+                <div class="brand-glow"></div>
+            </div>
+            <div class="auth-form-panel">
+                <div class="auth-form-inner">
+                    <!-- Mobile brand header (hidden on desktop) -->
+                    <div class="mobile-brand">
+                        <div class="mobile-brand-icon"><i class="fas fa-utensils"></i></div>
+                        <div class="mobile-brand-name">JNTUACEA <b>CanteenPro</b></div>
+                    </div>
+                    <h2 class="form-title">Welcome Back</h2>
+                    <p class="form-subtitle">Sign in to your account</p>
+                    <div class="role-selector">
+                        <button class="role-btn active" id="roleStudent" onclick="selectRole('student')">
+                            <i class="fas fa-user-graduate"></i><span>Student</span>
+                        </button>
+                        <button class="role-btn" id="roleWorker" onclick="selectRole('worker')">
+                            <i class="fas fa-hard-hat"></i><span>Worker</span>
+                        </button>
+                    </div>
+                    <form id="loginForm">
+                        <input type="hidden" id="loginRole" value="student">
+                        <div class="input-group">
+                            <i class="fas fa-id-card input-icon"></i>
+                            <input type="text" id="loginAdmissionNumber" placeholder="Admission / Worker ID" required>
+                        </div>
+                        <div class="input-group">
+                            <i class="fas fa-lock input-icon"></i>
+                            <input type="password" id="loginPassword" placeholder="Password" required>
+                            <button type="button" class="toggle-pw" onclick="togglePw('loginPassword',this)"><i class="fas fa-eye"></i></button>
+                        </div>
+                        <div class="form-actions-row">
+                            <a href="#" class="forgot-link" id="showForgotPassword">Forgot Password?</a>
+                        </div>
+                        <button type="submit" class="submit-btn"><span>Sign In</span><i class="fas fa-arrow-right"></i></button>
+                        <p class="switch-link">Don't have an account? <a href="#" id="showRegister">Register here</a></p>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- FORGOT PASSWORD PAGE -->
+    <div id="forgotPasswordPage" class="page">
+        <div class="auth-layout">
+            <div class="auth-brand-panel">
+                <div class="orb1"></div>
+                <div class="orb2"></div>
+                <div class="orb3"></div>
+                <div class="brand-content">
+                    <div class="brand-logo"><i class="fas fa-key"></i></div>
+                    <h1 class="brand-title">Reset Your<br><span>Password</span></h1>
+                    <p class="brand-tagline">We'll send a secure OTP to your registered email.</p>
+                </div>
+                <div class="brand-glow"></div>
+            </div>
+            <div class="auth-form-panel">
+                <div class="auth-form-inner">
+                    <!-- Step 1 -->
+                    <div id="fpStep1">
+                        <h2 class="form-title">Forgot Password</h2>
+                        <p class="form-subtitle">Enter your registered email address</p>
+                        <form id="forgotEmailForm">
+                            <div class="input-group">
+                                <i class="fas fa-envelope input-icon"></i>
+                                <input type="email" id="forgotEmail" placeholder="Registered Email" required>
+                            </div>
+                            <button type="submit" class="submit-btn"><span>Send OTP</span><i class="fas fa-paper-plane"></i></button>
+                        </form>
+                        <p class="switch-link"><a href="#" id="backToLogin">← Back to Login</a></p>
+                    </div>
+                    <!-- Step 2 -->
+                    <div id="fpStep2" style="display:none">
+                        <h2 class="form-title">Enter OTP</h2>
+                        <p class="form-subtitle">A 6-digit code was sent to <strong id="otpEmailDisplay"></strong></p>
+                        <div class="otp-boxes" id="otpBoxes">
+                            <input class="otp-input" maxlength="1" type="text" inputmode="numeric">
+                            <input class="otp-input" maxlength="1" type="text" inputmode="numeric">
+                            <input class="otp-input" maxlength="1" type="text" inputmode="numeric">
+                            <input class="otp-input" maxlength="1" type="text" inputmode="numeric">
+                            <input class="otp-input" maxlength="1" type="text" inputmode="numeric">
+                            <input class="otp-input" maxlength="1" type="text" inputmode="numeric">
+                        </div>
+                        <div class="otp-timer">Code expires in <span id="otpCountdown">05:00</span></div>
+                        <button class="submit-btn" id="verifyOtpBtn"><span>Verify OTP</span><i class="fas fa-check"></i></button>
+                        <p class="switch-link">Didn't receive? <a href="#" id="resendOtp">Resend OTP</a></p>
+                    </div>
+                    <!-- Step 3 -->
+                    <div id="fpStep3" style="display:none">
+                        <h2 class="form-title">New Password</h2>
+                        <p class="form-subtitle">Choose a strong new password</p>
+                        <form id="resetPasswordForm">
+                            <div class="input-group">
+                                <i class="fas fa-lock input-icon"></i>
+                                <input type="password" id="newPassword" placeholder="New Password" required>
+                                <button type="button" class="toggle-pw" onclick="togglePw('newPassword',this)"><i class="fas fa-eye"></i></button>
+                            </div>
+                            <div class="input-group">
+                                <i class="fas fa-lock input-icon"></i>
+                                <input type="password" id="confirmNewPassword" placeholder="Confirm Password" required>
+                                <button type="button" class="toggle-pw" onclick="togglePw('confirmNewPassword',this)"><i class="fas fa-eye"></i></button>
+                            </div>
+                            <div class="pw-strength-bar"><div id="pwStrengthFill"></div></div>
+                            <p id="pwStrengthLabel" style="font-size:12px;color:var(--accent);margin-bottom:12px"></p>
+                            <button type="submit" class="submit-btn"><span>Reset Password</span><i class="fas fa-shield-alt"></i></button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- REGISTER PAGE -->
+    <div id="registerPage" class="page">
+        <div class="auth-layout">
+            <div class="auth-brand-panel">
+                <div class="orb1"></div>
+                <div class="orb2"></div>
+                <div class="orb3"></div>
+                <div class="brand-content">
+                    <div class="brand-logo"><i class="fas fa-utensils"></i></div>
+                    <h1 class="brand-title">Join the<br><span>Canteen</span></h1>
+                    <p class="brand-tagline">Create your account and start ordering today.</p>
+                </div>
+                <div class="brand-glow"></div>
+            </div>
+            <div class="auth-form-panel">
+                <div class="auth-form-inner">
+                    <h2 class="form-title">Create Account</h2>
+                    <p class="form-subtitle">Fill in your details to get started</p>
+                    <form id="registerForm">
+                        <div class="input-row">
+                            <div class="input-group">
+                                <i class="fas fa-id-card input-icon"></i>
+                                <input type="text" id="regAdmissionNumber" placeholder="Admission Number *" required>
+                            </div>
+                            <div class="input-group">
+                                <i class="fas fa-user input-icon"></i>
+                                <input type="text" id="regFullName" placeholder="Full Name *" required>
+                            </div>
+                        </div>
+                        <div class="input-row">
+                            <div class="input-group">
+                                <i class="fas fa-envelope input-icon"></i>
+                                <input type="email" id="regEmail" placeholder="Email Address">
+                            </div>
+                            <div class="input-group">
+                                <i class="fas fa-phone input-icon"></i>
+                                <input type="tel" id="regPhone" placeholder="Phone Number">
+                            </div>
+                        </div>
+                        <div class="input-group">
+                            <i class="fas fa-users input-icon"></i>
+                            <select id="regUserType" required>
+                                <option value="student">Student</option>
+                                <option value="worker">Canteen Worker</option>
+                            </select>
+                        </div>
+                        <div class="input-row">
+                            <div class="input-group">
+                                <i class="fas fa-lock input-icon"></i>
+                                <input type="password" id="regPassword" placeholder="Password *" required>
+                                <button type="button" class="toggle-pw" onclick="togglePw('regPassword',this)"><i class="fas fa-eye"></i></button>
+                            </div>
+                            <div class="input-group">
+                                <i class="fas fa-lock input-icon"></i>
+                                <input type="password" id="regConfirmPassword" placeholder="Confirm Password *" required>
+                                <button type="button" class="toggle-pw" onclick="togglePw('regConfirmPassword',this)"><i class="fas fa-eye"></i></button>
+                            </div>
+                        </div>
+                        <button type="submit" class="submit-btn"><span>Create Account</span><i class="fas fa-user-plus"></i></button>
+                        <p class="switch-link">Already have an account? <a href="#" id="showLogin">Sign in</a></p>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MAIN APP -->
+    <div id="appContainer" class="page">
+        <nav class="navbar">
+            <div class="nav-brand">
+                <div class="nav-brand-icon"><i class="fas fa-utensils"></i></div>
+                <span>JNTUACEA <b>CanteenPro</b></span>
+            </div>
+            <div class="nav-user" id="navUserInfo">
+                <div class="user-avatar" id="userAvatar" onclick="goToProfile()" title="My Profile" style="cursor:pointer"></div>
+                <button id="logoutBtn" class="btn btn-outline btn-small" title="Logout"><i class="fas fa-sign-out-alt"></i></button>
+            </div>
+        </nav>
+
+        <!-- Student Dashboard -->
+        <div id="studentDashboard" class="dashboard">
+            <div class="sidebar">
+                <ul class="nav-menu">
+                    <li><a href="#" class="nav-link active" data-page="studentMenu"><i class="fas fa-home"></i><span>Menu</span></a></li>
+                    <li><a href="#" class="nav-link" data-page="studentOrders"><i class="fas fa-history"></i><span>My Orders</span></a></li>
+                    <li><a href="#" class="nav-link" data-page="studentProfile"><i class="fas fa-user"></i><span>Profile</span></a></li>
+                </ul>
+            </div>
+            <!-- Mobile Bottom Navigation -->
+            <nav class="mobile-bottom-nav" id="studentBottomNav">
+                <a data-page="studentMenu" class="active">
+                    <i class="fas fa-home"></i>
+                    <span>Menu</span>
+                    <div class="mob-nav-dot"></div>
+                </a>
+                <a data-page="studentOrders">
+                    <i class="fas fa-receipt"></i>
+                    <span>Orders</span>
+                    <div class="mob-nav-dot"></div>
+                </a>
+                <a data-page="studentProfile">
+                    <i class="fas fa-user"></i>
+                    <span>Profile</span>
+                    <div class="mob-nav-dot"></div>
+                </a>
+            </nav>
+            <div class="main-content">
+                <div id="studentMenu" class="page-content active">
+                    <div class="content-header"><h2><i class="fas fa-utensils"></i> Today's Menu</h2></div>
+                    <div class="menu-container" id="menuContainer"></div>
+                    <div class="cart-section">
+                        <h3><i class="fas fa-shopping-cart"></i> Your Cart</h3>
+                        <div class="cart-items" id="cartItems"></div>
+                        <div class="cart-total">
+                            <h4>Total: ₹<span id="cartTotal">0</span></h4>
+                            <button id="checkoutBtn" class="btn btn-success">Checkout <i class="fas fa-arrow-right"></i></button>
+                        </div>
+                    </div>
+                </div>
+                <div id="studentOrders" class="page-content">
+                    <div class="content-header"><h2><i class="fas fa-history"></i> My Orders</h2></div>
+                    <div class="orders-container" id="studentOrdersContainer"></div>
+                </div>
+                <div id="studentProfile" class="page-content">
+                    <div class="content-header"><h2><i class="fas fa-user"></i> My Profile</h2></div>
+                    <div class="profile-card"><div class="profile-info" id="profileInfo"></div></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Worker Dashboard -->
+        <div id="workerDashboard" class="dashboard">
+            <div class="sidebar">
+                <ul class="nav-menu">
+                    <li><a href="#" class="nav-link active" data-page="workerOrders"><i class="fas fa-clipboard-list"></i><span>Orders</span></a></li>
+                    <li><a href="#" class="nav-link" data-page="workerMenu"><i class="fas fa-utensils"></i><span>Menu Items</span></a></li>
+                    <li><a href="#" class="nav-link" data-page="workerProfile"><i class="fas fa-user"></i><span>Profile</span></a></li>
+                </ul>
+            </div>
+            <!-- Mobile Bottom Navigation -->
+            <nav class="mobile-bottom-nav" id="workerBottomNav">
+                <a data-page="workerOrders" class="active">
+                    <i class="fas fa-clipboard-list"></i>
+                    <span>Orders</span>
+                    <div class="mob-nav-dot"></div>
+                </a>
+                <a data-page="workerMenu">
+                    <i class="fas fa-utensils"></i>
+                    <span>Menu</span>
+                    <div class="mob-nav-dot"></div>
+                </a>
+                <a data-page="workerProfile">
+                    <i class="fas fa-user"></i>
+                    <span>Profile</span>
+                    <div class="mob-nav-dot"></div>
+                </a>
+            </nav>
+            <div class="main-content">
+                <div id="workerOrders" class="page-content active">
+                    <div class="content-header"><h2><i class="fas fa-clipboard-list"></i> All Orders</h2></div>
+                    <div class="filters">
+                        <select id="orderFilter">
+                            <option value="all">All Orders</option>
+                            <option value="pending">Pending</option>
+                            <option value="confirmed">Confirmed</option>
+                            <option value="preparing">Preparing</option>
+                            <option value="ready">Ready</option>
+                            <option value="completed">Completed</option>
+                        </select>
+                    </div>
+                    <div class="orders-container" id="workerOrdersContainer"></div>
+                </div>
+                <div id="workerMenu" class="page-content">
+                    <div class="content-header">
+                        <h2><i class="fas fa-utensils"></i> Menu Items</h2>
+                        <button class="btn btn-primary" id="workerAddMenuItemBtn">
+                            <i class="fas fa-plus"></i> Add Item
+                        </button>
+                    </div>
+                    <div class="menu-items-container" id="workerMenuContainer"></div>
+                </div>
+                <div id="workerProfile" class="page-content">
+                    <div class="content-header">
+                        <h2><i class="fas fa-user"></i> My Profile</h2>
+                    </div>
+                    <div class="profile-card">
+                        <div class="profile-info" id="workerProfileInfo"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Admin Dashboard -->
+        <div id="adminDashboard" class="dashboard">
+            <div class="sidebar">
+                <ul class="nav-menu">
+                    <li><a href="#" class="nav-link active" data-page="adminStats"><i class="fas fa-chart-bar"></i><span>Statistics</span></a></li>
+                    <li><a href="#" class="nav-link" data-page="adminOrders"><i class="fas fa-clipboard-list"></i><span>All Orders</span></a></li>
+                    <li><a href="#" class="nav-link" data-page="adminMenu"><i class="fas fa-utensils"></i><span>Menu Mgmt</span></a></li>
+                    <li><a href="#" class="nav-link" data-page="adminUsers"><i class="fas fa-users"></i><span>Users</span></a></li>
+                </ul>
+            </div>
+            <div class="main-content">
+                <div id="adminStats" class="page-content active">
+                    <div class="content-header"><h2><i class="fas fa-chart-bar"></i> Dashboard Statistics</h2></div>
+                    <div class="stats-grid" id="statsContainer"></div>
+                </div>
+                <div id="adminOrders" class="page-content">
+                    <div class="content-header"><h2><i class="fas fa-clipboard-list"></i> All Orders</h2></div>
+                    <div class="orders-container" id="adminOrdersContainer"></div>
+                </div>
+                <div id="adminMenu" class="page-content">
+                    <div class="content-header">
+                        <h2><i class="fas fa-utensils"></i> Menu Management</h2>
+                        <button id="addMenuItemBtn" class="btn btn-primary"><i class="fas fa-plus"></i> Add Item</button>
+                    </div>
+                    <div class="menu-items-container" id="adminMenuContainer"></div>
+                </div>
+                <div id="adminUsers" class="page-content">
+                    <div class="content-header"><h2><i class="fas fa-users"></i> User Management</h2></div>
+                    <div class="users-container" id="usersContainer"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- CHECKOUT MODAL -->
+    <div id="checkoutModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2><i class="fas fa-shopping-bag"></i> Checkout</h2>
+                <span class="close-modal">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div id="checkoutItems"></div>
+                <div class="checkout-total-bar">
+                    <span>Total Amount</span>
+                    <span class="total-amount">₹<span id="checkoutTotal">0</span></span>
+                </div>
+                <h4 class="payment-label">Payment Method</h4>
+                <div class="payment-options">
+                    <label class="payment-opt">
+                        <input type="radio" name="paymentMethod" value="cash" checked id="payCash">
+                        <div class="payment-opt-inner"><i class="fas fa-money-bill-wave"></i><span>Cash on Pickup</span></div>
+                    </label>
+                    <label class="payment-opt">
+                        <input type="radio" name="paymentMethod" value="online" id="payOnline">
+                        <div class="payment-opt-inner"><i class="fas fa-qrcode"></i><span>Online Payment</span></div>
+                    </label>
+                </div>
+
+                <!-- QR section — shown only when online is selected -->
+                <div id="qrSection" style="display:none">
+                    <div class="qr-card">
+                        <div class="qr-header">
+                            <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/5/5e/PhonePe_Logo.png/120px-PhonePe_Logo.png"
+                                 alt="PhonePe" style="height:28px;object-fit:contain">
+                            <span class="qr-accepted">ACCEPTED HERE</span>
+                        </div>
+                        <p class="qr-scan-text">Scan &amp; Pay Using PhonePe / Any UPI App</p>
+                        <div class="qr-img-wrap">
+                            <img id="qrImage" src="" alt="QR Code" />
+                        </div>
+                        <div class="qr-amount-pill">Pay ₹<span id="qrAmountDisplay">0</span></div>
+                        <p class="qr-name">SODE MUNI THANMAY TE</p>
+                        <p class="qr-instruction">
+                            Tap <strong>"Pay & Confirm Order"</strong> below —<br>
+                            your UPI app will open automatically and this page<br>
+                            will confirm your order once payment is done.
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Cash note — shown only when cash is selected -->
+                <div id="cashNote" class="cash-note">
+                    <i class="fas fa-info-circle"></i>
+                    Pay at the counter when you pick up your order.
+                </div>
+
+                <button id="confirmOrderBtn" class="submit-btn" style="margin-top:20px">
+                    <span id="confirmBtnText">Confirm Order</span>
+                    <i class="fas fa-check"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MENU ITEM MODAL -->
+    <div id="menuItemModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modalTitle"><i class="fas fa-utensils"></i> Add Menu Item</h2>
+                <span class="close-modal">&times;</span>
+            </div>
+            <div class="modal-body">
+                <form id="menuItemForm">
+                    <div class="input-group"><i class="fas fa-tag input-icon"></i><input type="text" id="itemName" placeholder="Item Name" required></div>
+                    <div class="input-group" style="align-items:flex-start;padding-top:4px">
+                        <i class="fas fa-align-left input-icon" style="top:16px"></i>
+                        <textarea id="itemDescription" rows="3" placeholder="Description"></textarea>
+                    </div>
+                    <div class="input-row">
+                        <div class="input-group"><i class="fas fa-rupee-sign input-icon"></i><input type="number" id="itemPrice" placeholder="Price (₹)" step="0.01" required></div>
+                        <div class="input-group">
+                            <i class="fas fa-layer-group input-icon"></i>
+                            <select id="itemCategory">
+                                <option>Main Course</option><option>Starter</option><option>Breakfast</option>
+                                <option>Beverage</option><option>Snack</option><option>Fast Food</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="input-group"><i class="fas fa-image input-icon"></i><input type="text" id="itemImage" placeholder="Image URL (Optional)"></div>
+                    <div class="avail-edit-row">
+                        <label class="toggle-label" style="margin:0">
+                            <input type="checkbox" id="itemAvailable" checked
+                                   onchange="document.getElementById('availEditLabel').textContent=this.checked?'Available — students can order':'Not Available — hidden from students';
+                                             document.getElementById('availEditLabel').style.color=this.checked?'var(--success)':'var(--danger)'">
+                            <span class="toggle-slider"></span>
+                        </label>
+                        <span id="availEditLabel" style="font-size:14px;font-weight:600;color:var(--success)">Available — students can order</span>
+                    </div>
+                    <input type="hidden" id="itemId">
+                    <button type="submit" class="submit-btn" style="margin-top:16px"><span>Save Item</span><i class="fas fa-save"></i></button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div id="toast" class="toast"></div>
+
+    <script src="https://cdn.jsdelivr.net/npm/qrcodejs/qrcode.min.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>
