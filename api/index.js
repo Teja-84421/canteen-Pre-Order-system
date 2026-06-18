@@ -58,7 +58,8 @@ function getDBConfig() {
         waitForConnections: true,
         connectionLimit:    5,       // keep low for serverless
         queueLimit:         0,
-        connectTimeout:     10000
+        connectTimeout:     10000,
+        timezone:           '+05:30' // IST
     };
 
     // TiDB Cloud ALWAYS needs SSL
@@ -86,12 +87,43 @@ function getMailer() {
     if (!process.env.MAIL_USER || !process.env.MAIL_PASS) return null;
     return nodemailer.createTransport({
         service: 'gmail',
-        auth: { user: process.env.MAIL_USER, pass: process.env.MAIL_PASS }
+        auth: {
+            // .trim() guards against copy-pasted Gmail App Passwords that
+            // include spaces (Google displays them as "abcd efgh ijkl mnop")
+            user: process.env.MAIL_USER.trim(),
+            pass: process.env.MAIL_PASS.replace(/\s+/g, '')
+        }
     });
 }
 
-/* ── In-memory OTP store (resets on cold start — fine for serverless) ── */
-const otpStore = new Map();
+/* ═══════════════════════════════════════════════
+   OTP STORAGE — backed by the database, not memory
+   Vercel runs multiple serverless instances, so an
+   in-memory Map can't be trusted to survive between
+   the "send OTP" and "verify OTP" requests. We use a
+   small DB table instead so it works regardless of
+   which instance handles each request.
+═══════════════════════════════════════════════ */
+async function saveOtp(pool, email, otp) {
+    const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
+    await pool.execute('DELETE FROM password_resets WHERE email = ?', [email]);
+    await pool.execute(
+        'INSERT INTO password_resets (email, otp, expires_at) VALUES (?, ?, ?)',
+        [email, otp, expiresAt]
+    );
+}
+
+async function getOtpRecord(pool, email) {
+    const [rows] = await pool.execute(
+        'SELECT otp, expires_at FROM password_resets WHERE email = ? ORDER BY id DESC LIMIT 1',
+        [email]
+    );
+    return rows[0] || null;
+}
+
+async function clearOtp(pool, email) {
+    await pool.execute('DELETE FROM password_resets WHERE email = ?', [email]);
+}
 
 /* ═══════════════════════════════════════════════
    JWT MIDDLEWARE
@@ -209,50 +241,61 @@ app.post('/api/login', async (req, res) => {
 app.post('/api/forgot-password', async (req, res) => {
     const { email } = req.body;
     if (!email?.trim()) return res.status(400).json({ error: 'Email is required' });
+    const cleanEmail = email.trim();
 
     try {
-        const [rows] = await getDB().execute(
-            'SELECT id, full_name FROM users WHERE email = ?', [email.trim()]
+        const pool = getDB();
+        const [rows] = await pool.execute(
+            'SELECT id, full_name FROM users WHERE email = ?', [cleanEmail]
         );
         if (!rows.length)
             return res.status(404).json({ error: 'No account found with this email address' });
 
-        // Generate OTP
+        // Generate OTP and store it in the DB (works across serverless instances)
         const otp = String(Math.floor(100000 + Math.random() * 900000));
-        otpStore.set(email.trim(), { otp, expiresAt: Date.now() + 5 * 60 * 1000 });
+        await saveOtp(pool, cleanEmail, otp);
 
         const mailer = getMailer();
         if (mailer) {
-            await mailer.sendMail({
-                from:    `"Canteen System 🍽️" <${process.env.MAIL_USER}>`,
-                to:      email.trim(),
-                subject: '🔐 Password Reset OTP — Canteen System',
-                html: `
-                <div style="font-family:'Segoe UI',Arial,sans-serif;max-width:500px;margin:0 auto;background:#0a0a0f;color:#f0f0f8;border-radius:20px;overflow:hidden;border:1px solid #2a2a3a">
-                    <div style="background:linear-gradient(135deg,#ff6b2b,#e85a1e);padding:28px 36px;text-align:center">
-                        <div style="font-size:2.2rem">🍽️</div>
-                        <h1 style="margin:8px 0 4px;font-size:1.3rem;color:#fff;font-weight:700">Canteen Pre-Order System</h1>
-                        <p style="margin:0;color:rgba(255,255,255,0.85);font-size:0.9rem">Password Reset Request</p>
-                    </div>
-                    <div style="padding:36px">
-                        <p style="margin:0 0 8px;color:#f0f0f8">Hi <strong>${rows[0].full_name}</strong>,</p>
-                        <p style="margin:0 0 24px;color:#888;line-height:1.6">Use the OTP below to reset your password. It expires in <strong style="color:#ff6b2b">5 minutes</strong>.</p>
-                        <div style="background:#16161f;border:2px solid #2a2a3a;border-radius:14px;padding:28px;text-align:center;margin-bottom:24px">
-                            <p style="margin:0 0 8px;color:#888;font-size:12px;text-transform:uppercase;letter-spacing:2px">Your OTP</p>
-                            <div style="letter-spacing:14px;font-size:2.6rem;font-weight:800;color:#ff6b2b;font-family:monospace">${otp}</div>
+            try {
+                await mailer.sendMail({
+                    from:    `"Canteen System 🍽️" <${process.env.MAIL_USER}>`,
+                    to:      cleanEmail,
+                    subject: '🔐 Password Reset OTP — Canteen System',
+                    html: `
+                    <div style="font-family:'Segoe UI',Arial,sans-serif;max-width:500px;margin:0 auto;background:#0a0a0f;color:#f0f0f8;border-radius:20px;overflow:hidden;border:1px solid #2a2a3a">
+                        <div style="background:linear-gradient(135deg,#ff6b2b,#e85a1e);padding:28px 36px;text-align:center">
+                            <div style="font-size:2.2rem">🍽️</div>
+                            <h1 style="margin:8px 0 4px;font-size:1.3rem;color:#fff;font-weight:700">Canteen Pre-Order System</h1>
+                            <p style="margin:0;color:rgba(255,255,255,0.85);font-size:0.9rem">Password Reset Request</p>
                         </div>
-                        <p style="margin:0;color:#555;font-size:13px;line-height:1.6">If you didn't request a password reset, you can safely ignore this email.</p>
-                    </div>
-                    <div style="padding:16px 36px;border-top:1px solid #2a2a3a;text-align:center">
-                        <p style="margin:0;color:#333;font-size:12px">© ${new Date().getFullYear()} Canteen Pre-Order System</p>
-                    </div>
-                </div>`
-            });
-            console.log(`📧 OTP email sent to ${email}`);
+                        <div style="padding:36px">
+                            <p style="margin:0 0 8px;color:#f0f0f8">Hi <strong>${rows[0].full_name}</strong>,</p>
+                            <p style="margin:0 0 24px;color:#888;line-height:1.6">Use the OTP below to reset your password. It expires in <strong style="color:#ff6b2b">5 minutes</strong>.</p>
+                            <div style="background:#16161f;border:2px solid #2a2a3a;border-radius:14px;padding:28px;text-align:center;margin-bottom:24px">
+                                <p style="margin:0 0 8px;color:#888;font-size:12px;text-transform:uppercase;letter-spacing:2px">Your OTP</p>
+                                <div style="letter-spacing:14px;font-size:2.6rem;font-weight:800;color:#ff6b2b;font-family:monospace">${otp}</div>
+                            </div>
+                            <p style="margin:0;color:#555;font-size:13px;line-height:1.6">If you didn't request a password reset, you can safely ignore this email.</p>
+                        </div>
+                        <div style="padding:16px 36px;border-top:1px solid #2a2a3a;text-align:center">
+                            <p style="margin:0;color:#333;font-size:12px">© ${new Date().getFullYear()} Canteen Pre-Order System</p>
+                        </div>
+                    </div>`
+                });
+                console.log(`📧 OTP email sent to ${cleanEmail}`);
+            } catch (mailErr) {
+                // Don't silently swallow mail failures — log the real reason
+                // (e.g. "Invalid login" usually means MAIL_PASS has a typo/space,
+                // or Gmail App Passwords / 2FA isn't set up on that account).
+                console.error('❌ OTP email failed to send:', mailErr.message);
+                console.log(`   (Fallback) OTP for ${cleanEmail}: ${otp}`);
+                return res.status(500).json({ error: 'Could not send OTP email. Please contact support or check server logs.' });
+            }
         } else {
             // Dev fallback — show in server logs / Vercel Function logs
             console.log(`\n🔑 ─────────────────────────────`);
-            console.log(`   OTP for ${email}: ${otp}`);
+            console.log(`   OTP for ${cleanEmail}: ${otp}`);
             console.log(`   (No MAIL_USER set — check Vercel logs)`);
             console.log(`─────────────────────────────\n`);
         }
@@ -267,21 +310,27 @@ app.post('/api/forgot-password', async (req, res) => {
 /* ═══════════════════════════════════════════════
    VERIFY OTP
 ═══════════════════════════════════════════════ */
-app.post('/api/verify-otp', (req, res) => {
+app.post('/api/verify-otp', async (req, res) => {
     const { email, otp } = req.body;
     if (!email || !otp) return res.status(400).json({ error: 'Email and OTP are required' });
+    const cleanEmail = email.trim();
 
-    const record = otpStore.get(email.trim());
-    if (!record)
-        return res.status(400).json({ error: 'No OTP found. Please request a new one.' });
-    if (Date.now() > record.expiresAt) {
-        otpStore.delete(email.trim());
-        return res.status(400).json({ error: 'OTP has expired. Please request a new one.' });
+    try {
+        const record = await getOtpRecord(getDB(), cleanEmail);
+        if (!record)
+            return res.status(400).json({ error: 'No OTP found. Please request a new one.' });
+        if (Date.now() > new Date(record.expires_at).getTime()) {
+            await clearOtp(getDB(), cleanEmail);
+            return res.status(400).json({ error: 'OTP has expired. Please request a new one.' });
+        }
+        if (record.otp !== String(otp).trim())
+            return res.status(400).json({ error: 'Incorrect OTP. Please check and try again.' });
+
+        res.json({ message: 'OTP verified' });
+    } catch (err) {
+        console.error('Verify OTP error:', err.message);
+        res.status(500).json({ error: 'Failed to verify OTP. Please try again.' });
     }
-    if (record.otp !== String(otp).trim())
-        return res.status(400).json({ error: 'Incorrect OTP. Please check and try again.' });
-
-    res.json({ message: 'OTP verified' });
 });
 
 /* ═══════════════════════════════════════════════
@@ -293,20 +342,22 @@ app.post('/api/reset-password', async (req, res) => {
         return res.status(400).json({ error: 'Email, OTP and new password are required' });
     if (newPassword.length < 6)
         return res.status(400).json({ error: 'Password must be at least 6 characters' });
-
-    const record = otpStore.get(email.trim());
-    if (!record || record.otp !== String(otp).trim() || Date.now() > record.expiresAt)
-        return res.status(400).json({ error: 'Invalid or expired OTP' });
+    const cleanEmail = email.trim();
 
     try {
+        const pool = getDB();
+        const record = await getOtpRecord(pool, cleanEmail);
+        if (!record || record.otp !== String(otp).trim() || Date.now() > new Date(record.expires_at).getTime())
+            return res.status(400).json({ error: 'Invalid or expired OTP' });
+
         const hashed = await bcrypt.hash(newPassword, 10);
-        const [result] = await getDB().execute(
-            'UPDATE users SET password = ? WHERE email = ?', [hashed, email.trim()]
+        const [result] = await pool.execute(
+            'UPDATE users SET password = ? WHERE email = ?', [hashed, cleanEmail]
         );
         if (result.affectedRows === 0)
             return res.status(404).json({ error: 'User not found' });
 
-        otpStore.delete(email.trim());
+        await clearOtp(pool, cleanEmail);
         res.json({ message: 'Password reset successfully' });
     } catch (err) {
         console.error('Reset password error:', err.message);
@@ -331,29 +382,12 @@ app.get('/api/profile', auth, async (req, res) => {
 });
 
 /* ═══════════════════════════════════════════════
-   PROFILE — UPDATE
-═══════════════════════════════════════════════ */
-app.put('/api/profile', auth, async (req, res) => {
-    const { full_name, email, phone } = req.body;
-    if (!full_name?.trim()) return res.status(400).json({ error: 'Full name is required' });
-    try {
-        await getDB().execute(
-            'UPDATE users SET full_name = ?, email = ?, phone = ? WHERE id = ?',
-            [full_name.trim(), email?.trim() || null, phone?.trim() || null, req.user.id]
-        );
-        res.json({ message: 'Profile updated successfully' });
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
-});
-
-/* ═══════════════════════════════════════════════
    MENU
 ═══════════════════════════════════════════════ */
 app.get('/api/menu', async (req, res) => {
     try {
         const [rows] = await getDB().execute(
-            'SELECT * FROM menu_items ORDER BY category, name'
+            'SELECT * FROM menu_items WHERE is_available = 1 ORDER BY category, name'
         );
         res.json(rows);
     } catch (err) {
@@ -392,11 +426,7 @@ app.put('/api/menu/:id', auth, workerOrAdmin, async (req, res) => {
 
 app.delete('/api/menu/:id', auth, workerOrAdmin, async (req, res) => {
     try {
-        const pool = getDB();
-        const id   = req.params.id;
-        // Must delete order_items referencing this menu item first (FK constraint)
-        await pool.execute('DELETE FROM order_items WHERE menu_item_id = ?', [id]);
-        await pool.execute('DELETE FROM menu_items WHERE id = ?', [id]);
+        await getDB().execute('DELETE FROM menu_items WHERE id = ?', [req.params.id]);
         res.json({ message: 'Menu item deleted' });
     } catch (err) {
         res.status(500).json({ error: err.message });
@@ -465,31 +495,15 @@ app.get('/api/orders/my-orders', auth, async (req, res) => {
 ═══════════════════════════════════════════════ */
 app.get('/api/orders', auth, workerOrAdmin, async (req, res) => {
     try {
-        const pool   = getDB();
         const status = req.query.status;
-        let query  = `SELECT o.*, u.full_name, u.phone
-                      FROM orders o
-                      JOIN users u ON o.user_id = u.id`;
+        let query  = `SELECT o.*, u.full_name FROM orders o JOIN users u ON o.user_id = u.id`;
         let params = [];
         if (status && status !== 'all') {
             query += ' WHERE o.status = ?';
             params.push(status);
         }
         query += ' ORDER BY o.id DESC';
-        const [orders] = await pool.execute(query, params);
-
-        // Fetch ordered items for every order
-        for (const order of orders) {
-            const [items] = await pool.execute(
-                `SELECT oi.quantity, oi.price, m.name
-                 FROM order_items oi
-                 JOIN menu_items m ON oi.menu_item_id = m.id
-                 WHERE oi.order_id = ?`,
-                [order.id]
-            );
-            order.items = items;
-        }
-
+        const [orders] = await getDB().execute(query, params);
         res.json(orders);
     } catch (err) {
         res.status(500).json({ error: err.message });
